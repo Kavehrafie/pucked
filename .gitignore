@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# If you use pnpm (recommended for this repo), commit pnpm-lock.yaml.
+# Ignore npm's lockfile to prevent accidental multi-lockfile installs.
+package-lock.json

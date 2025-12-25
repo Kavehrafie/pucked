@@ -1,6 +1,8 @@
 import createMiddleware from 'next-intl/middleware';
 import {routing} from './i18n/routing';
 import { NextRequest } from 'next/server';
+
+const intlProxy = createMiddleware(routing);
  
 export const config = {
   // Match all pathnames except for
@@ -12,15 +14,6 @@ export const config = {
 
 
 
-// In your middleware
-export async function middleware(request: NextRequest) {
-  // const session = await getSession(request);
-  
-  // Simple boolean check - no complex logic
-  // if (!session && request.nextUrl.pathname.startsWith('/admin')) {
-  //   return NextResponse.redirect(new URL('/login', request.url));
-  // }
-  
-  // Then apply next-intl middleware
-  return createMiddleware(routing)(request);
+export default function proxy(request: NextRequest) {
+  return intlProxy(request);
 }
