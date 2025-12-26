@@ -82,17 +82,9 @@ export default async function DashboardPage() {
       </header>
 
       {/* Pages Tree Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Page Structure</CardTitle>
-          <CardDescription>
-            Drag and drop to reorder pages. Click the arrow to expand/collapse child pages.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+
           <SortableTree items={mockPages} />
-        </CardContent>
-      </Card>
+   
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

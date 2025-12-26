@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -21,8 +21,10 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { SortableTreeItem } from "@/components/TreeItem";
+import { ArrowRight, ArrowLeft, X } from "lucide-react";
 import type { UniqueIdentifier } from "@dnd-kit/core";
 import type { TreeItem, FlattenedItem } from "@/components/types";
+import { Badge } from "../ui/badge";
 
 export interface PageTreeNode {
   id: string;
@@ -61,19 +63,61 @@ function toPageTreeNode(item: TreeItem, titleMap: Map<string, string>, slugMap: 
   };
 }
 
-// Flatten tree items
+// Flatten tree items - only include visible items (respect collapsed state)
 function flattenTree(
   items: PageTreeNode[],
   parentId: UniqueIdentifier | null = null,
   depth = 0
 ): FlattenedItem[] {
   return items.reduce<FlattenedItem[]>((acc, item, index) => {
-    return [
-      ...acc,
-      { id: item.id, parentId, depth, index, children: [], collapsed: item.collapsed },
-      ...flattenTree(item.children || [], item.id, depth + 1),
-    ];
+    const flattenedItem = {
+      id: item.id,
+      parentId,
+      depth,
+      index,
+      children: item.children || [],
+      collapsed: item.collapsed
+    };
+    
+    // Only include children if not collapsed
+    if (!item.collapsed && item.children && item.children.length > 0) {
+      return [
+        ...acc,
+        flattenedItem,
+        ...flattenTree(item.children, item.id, depth + 1),
+      ];
+    }
+    
+    return [...acc, flattenedItem];
   }, []);
+}
+
+// Helper to find a node by ID in nested structure
+function findNode(items: PageTreeNode[], id: string): PageTreeNode | undefined {
+  for (const item of items) {
+    if (item.id === id) return item;
+    if (item.children) {
+      const found = findNode(item.children, id);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+// Helper to check if targetId is a descendant of ancestorId
+function isDescendant(items: PageTreeNode[], ancestorId: string, targetId: string): boolean {
+  const ancestor = findNode(items, ancestorId);
+  if (!ancestor || !ancestor.children) return false;
+  
+  const checkChildren = (nodes: PageTreeNode[]): boolean => {
+    for (const node of nodes) {
+      if (node.id === targetId) return true;
+      if (node.children && checkChildren(node.children)) return true;
+    }
+    return false;
+  };
+  
+  return checkChildren(ancestor.children);
 }
 
 // Build tree from flattened items
@@ -155,11 +199,17 @@ export function SortableTree({
   removable = false,
   indentationWidth = 24,
 }: SortableTreeProps) {
+  const [mounted, setMounted] = useState(false);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
+  const [isInvalidNesting, setIsInvalidNesting] = useState(false);
 
   const [itemsState, setItemsState] = useState<PageTreeNode[]>(items);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Create maps to preserve titles and slugs
   const titleMap = useMemo(() => {
@@ -200,28 +250,13 @@ export function SortableTree({
       : null;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-
-  const adjustTranslate = ({
-    transform
-  }: {
-    transform: { x: number; y: number };
-  }) => {
-    return {
-      ...transform,
-      y: transform.y - 25,
-    };
-  };
+  const adjustTranslate: Modifiers = [
+    ({ transform }) => ({ ...transform, y: transform.y - 25 })
+  ];
 
   const handleDragStart = ({ active }: DragStartEvent) => {
     setActiveId(active.id);
@@ -234,35 +269,50 @@ export function SortableTree({
 
   const handleDragOver = ({ over }: DragOverEvent) => {
     setOverId(over?.id ?? null);
+    
+    // Check if this would be an invalid nesting
+    if (over?.id && activeId && projected) {
+      const wouldBeInvalid = 
+        (projected.parentId && isDescendant(itemsState, String(activeId), String(projected.parentId))) ||
+        isDescendant(itemsState, String(activeId), String(over.id));
+      setIsInvalidNesting(wouldBeInvalid);
+    } else {
+      setIsInvalidNesting(false);
+    }
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     setOffsetLeft(0);
+    setOverId(null);
+    setIsInvalidNesting(false);
 
     if (projected && over) {
-      const flattenedItemsWithProjection = flattenedItems.map((item) => {
-        if (item.id === active.id) {
-          return {
-            ...item,
-            depth: projected.depth,
-            parentId: projected.parentId,
-          };
-        }
-        return item;
-      });
+      // Prevent parent from becoming child of its own descendants
+      const isInvalidDrop = 
+        (projected.parentId && isDescendant(itemsState, String(active.id), String(projected.parentId))) ||
+        isDescendant(itemsState, String(active.id), String(over.id));
+      
+      if (isInvalidDrop) {
+        setTimeout(() => setActiveId(null), 200);
+        return;
+      }
 
-      const sortedItems = arrayMove(
-        flattenedItemsWithProjection,
-        flattenedItemsWithProjection.findIndex(({ id }) => id === active.id),
-        flattenedItemsWithProjection.findIndex(({ id }) => id === over.id)
+      const flattenedItemsWithProjection = flattenedItems.map((item) =>
+        item.id === active.id
+          ? { ...item, depth: projected.depth, parentId: projected.parentId }
+          : item
       );
+
+      const activeIndex = flattenedItemsWithProjection.findIndex(({ id }) => id === active.id);
+      const overIndex = flattenedItemsWithProjection.findIndex(({ id }) => id === over.id);
+      const sortedItems = arrayMove(flattenedItemsWithProjection, activeIndex, overIndex);
 
       const newItems = buildTreeFromFlattened(sortedItems, titleMap, slugMap);
       setItemsState(newItems);
       onChange?.(newItems);
     }
 
-    setActiveId(null);
+    setTimeout(() => setActiveId(null), 200);
   };
 
   const handleCollapse = (id: UniqueIdentifier) => {
@@ -296,6 +346,28 @@ export function SortableTree({
     ? flattenedItems.find(({ id }) => id === activeId)
     : null;
 
+  if (!mounted) {
+    return (
+      <ul className="flex flex-col gap-2" role="tree">
+        {flattenedItems.map(({ id, depth }) => {
+          const node = findNode(itemsState, String(id));
+          if (!node) return null;
+          return (
+            <li
+              key={id}
+              className="relative list-none"
+              style={{ paddingLeft: `${indentationWidth * depth}px` }}
+            >
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 shadow-sm">
+                <span className="text-sm font-medium text-foreground">{node.title}</span>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+
   return (
     <DndContext
       sensors={sensors}
@@ -308,9 +380,11 @@ export function SortableTree({
       <SortableContext items={flattenedItems}>
         <ul className="flex flex-col gap-2" role="tree">
           {flattenedItems.map(
-            ({ id, collapsed, depth }) => {
-              const node = itemsState.find(n => n.id === id);
+            ({ id, collapsed, depth, children }) => {
+              const node = findNode(itemsState, String(id));
               if (!node) return null;
+
+              const hasChildren = (node.children?.length ?? 0) > 0;
 
               return (
                 <SortableTreeItem
@@ -320,8 +394,10 @@ export function SortableTree({
                   depth={depth}
                   indentationWidth={indentationWidth}
                   collapsed={collapsed}
+                  childCount={hasChildren ? node.children!.length : undefined}
+                  indicator={overId === id && activeId !== id}
                   onCollapse={
-                    collapsible && collapsed !== undefined
+                    collapsible && hasChildren
                       ? () => handleCollapse(id)
                       : undefined
                   }
@@ -332,16 +408,31 @@ export function SortableTree({
           )}
         </ul>
       </SortableContext>
-      {typeof window !== "undefined" && activeItem && (
-        <DragOverlay modifiers={isMobile ? undefined : adjustTranslate}>
-          <SortableTreeItem
-            id={activeItem.id}
-            value={titleMap.get(String(activeItem.id)) || ''}
-            depth={activeItem.depth}
-            indentationWidth={indentationWidth}
-            clone
-            ghost
-          />
+      {activeItem && (
+        <DragOverlay modifiers={adjustTranslate}>
+          <div className="relative">
+            <SortableTreeItem
+              id={activeItem.id}
+              value={titleMap.get(String(activeItem.id)) || ''}
+              depth={projected?.depth ?? activeItem.depth}
+              indentationWidth={indentationWidth}
+              clone
+            />
+            {projected && (projected.depth !== activeItem.depth || isInvalidNesting) && (
+              <Badge 
+                variant={isInvalidNesting ? "destructive" : "default"}
+                className="absolute -left-10 top-1/2 -translate-y-1/2 shadow-lg"
+              >
+                {isInvalidNesting ? (
+                  <X className="h-3 w-3" />
+                ) : projected.depth > activeItem.depth ? (
+                  <ArrowRight className="h-3 w-3" />
+                ) : (
+                  <ArrowLeft className="h-3 w-3" />
+                )}
+              </Badge>
+            )}
+          </div>
         </DragOverlay>
       )}
     </DndContext>
