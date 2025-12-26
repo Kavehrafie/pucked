@@ -1,4 +1,12 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Didaar Website
+
+A bilingual (EN/FA) web application with a visual content management system using Next.js 16, Puck editor, and Turso database.
+
+## Quick Links
+
+- **[CLAUDE.md](./CLAUDE.md)** - Project overview and development guide for AI assistants
+- **[DATABASE_SETUP.md](./DATABASE_SETUP.md)** - Complete database documentation (Turso + Drizzle ORM)
+- **[Anytype Integration](./CLAUDE.md#anytype-project-references)** - How this project links to Anytype documentation
 
 ## Getting Started
 

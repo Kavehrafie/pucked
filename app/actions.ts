@@ -1,33 +1,25 @@
 "use server";
-// import {
-// 	getCurrentSession, invalidateSession, deleteSessionTokenCookie
-// } from "@/lib/session";
 
 import { redirect } from "next/navigation";
 import { generateState } from "arctic";
 import { github } from "@/lib/oauth";
 import { cookies } from "next/headers";
+import { deleteSessionTokenCookie, getCurrentSession, invalidateSession } from "@/lib/session";
+import { getInvitationByCode, isInvitationValid, useInvitation } from "@/lib/invitation";
+import { acceptInvitationForUser } from "@/lib/users";
 
-interface ActionResult {
-	error: string | null;
+export async function logout() {
+	const { session } = await getCurrentSession();
+	if (!session) {
+		return;
+	}
+
+	await invalidateSession(session.id);
+	await deleteSessionTokenCookie();
+	redirect("/login");
 }
 
-// export async function logout(): Promise<ActionResult> {
-// 	const { session } = await getCurrentSession();
-// 	if (!session) {
-// 		return {
-// 			error: "Unauthorized"
-// 		};
-// 	}
-
-// 	await invalidateSession(session.id);
-// 	await deleteSessionTokenCookie();
-// 	return redirect("/login");
-
-
-// }
-
-export async function loginWithGitHub(): Promise<void> {
+export async function loginWithGitHub() {
 	const state = generateState();
 	const url = github.createAuthorizationURL(state, []);
 
@@ -40,5 +32,31 @@ export async function loginWithGitHub(): Promise<void> {
 		sameSite: "lax"
 	});
 
-	return redirect(url.toString());
+	redirect(url.toString());
 }
+
+export async function submitInvitation(prevState: { error: string }, formData: FormData) {
+	const rawCode = formData.get("code");
+	const code = typeof rawCode === "string" ? rawCode.trim() : "";
+
+	const { user } = await getCurrentSession();
+
+	if (!user) {
+		redirect("/login");
+	}
+
+	if (!code) {
+		return { error: "Invitation code is required" };
+	}
+
+	const invitation = await getInvitationByCode(code);
+	if (!invitation || !isInvitationValid(invitation)) {
+		return { error: "Invalid or expired invitation code" };
+	}
+
+	await useInvitation(code, user.id);
+	await acceptInvitationForUser(user.id);
+
+	redirect("/admin");
+}
+

@@ -1,0 +1,63 @@
+import { db } from "@/db";
+import { invitations, users } from "@/db/schema";
+import { eq, and, gt, isNull } from "drizzle-orm";
+import { randomBytes } from "crypto";
+
+export function generateInvitationCode(): string {
+  const bytes = randomBytes(6);
+  const code = bytes.toString("hex").toUpperCase();
+  return `${code.slice(0, 4)}-${code.slice(4, 8)}-${code.slice(8, 12)}`;
+}
+
+export async function createInvitation(code: string, createdBy: number, expiresAt: Date) {
+  const invitation = await db.insert(invitations).values({
+    code,
+    createdBy,
+    expiresAt,
+  }).returning();
+  return invitation[0];
+}
+
+export async function getInvitationByCode(code: string) {
+  const invitation = await db.query.invitations.findFirst({
+    where: eq(invitations.code, code.toUpperCase()),
+  });
+  return invitation;
+}
+
+export function isInvitationValid(invitation: any): boolean {
+  if (!invitation) return false;
+  if (invitation.usedBy !== null) return false; // Already used
+  if (new Date() > invitation.expiresAt) return false; // Expired
+  return true;
+}
+
+export async function useInvitation(code: string, userId: number) {
+  const invitation = await getInvitationByCode(code);
+  if (!invitation) {
+    throw new Error("Invalid invitation code");
+  }
+  
+  if (!isInvitationValid(invitation)) {
+    throw new Error("Invitation expired or already used");
+  }
+
+  // Mark invitation as used
+  await db.update(invitations)
+    .set({
+      usedBy: userId,
+      usedAt: new Date(),
+    })
+    .where(eq(invitations.id, invitation.id));
+
+  return invitation;
+}
+
+export async function listInvitations() {
+  return await db.query.invitations.findMany({
+    with: {
+      createdByUser: true,
+      usedByUser: true,
+    },
+  });
+}

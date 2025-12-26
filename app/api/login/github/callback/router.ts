@@ -4,6 +4,8 @@ import { github } from "@/lib/oauth";
 import { cookies } from "next/headers";
 
 import type { OAuth2Tokens } from "arctic";
+import { createUserFromGitHubId, getUserFromGitHubId } from "@/lib/users";
+import { redirect } from "next/navigation";
 
 export async function GET(request: Request): Promise<Response> {
 	const url = new URL(request.url);
@@ -40,31 +42,31 @@ export async function GET(request: Request): Promise<Response> {
 	const githubUserId = githubUser.id;
 	const githubUsername = githubUser.login;
 
-	// TODO: Replace this with your own DB query.
 	const existingUser = await getUserFromGitHubId(githubUserId);
 
-	if (existingUser !== null) {
-		const sessionToken = generateSessionToken();
-		const session = await createSession(sessionToken, existingUser.id);
-		await setSessionTokenCookie(sessionToken, session.expiresAt);
-		return new Response(null, {
-			status: 302,
-			headers: {
-				Location: "/"
-			}
-		});
+	// Create user if doesn't exist
+	let user = existingUser;
+	if (!user) {
+		user = await createUserFromGitHubId(githubUserId, githubUsername);
 	}
 
-	// TODO: Replace this with your own DB query.
-	const user = await createUser(githubUserId, githubUsername);
-
+	// Always create session (user is authenticated via GitHub)
 	const sessionToken = generateSessionToken();
 	const session = await createSession(sessionToken, user.id);
 	await setSessionTokenCookie(sessionToken, session.expiresAt);
+
+	// Check if user has accepted invitation
+	if (user.invitationAcceptedAt === null) {
+		// User authenticated but needs to accept invitation
+		return redirect("/signup");
+	}
+
+	// User is fully authenticated and has accepted invitation
 	return new Response(null, {
 		status: 302,
 		headers: {
 			Location: "/"
 		}
 	});
+
 }

@@ -206,4 +206,29 @@ From Anytype project spec ("Didaar website" page):
 
 - Demo at `/demo` shows basic database connectivity
 - Main landing page still uses default Next.js template
-- GitHub OAuth and Drizzle ORM not yet implemented
+- GitHub OAuth and Drizzle ORM are now implemented ✅
+
+## Anytype Project References
+
+This project is documented in Anytype with the following key entries:
+
+### Main Anytype Page: "Didaar website"
+- **Purpose**: Primary project specification and requirements
+- **Key Features Defined**:
+  1. GitHub OAuth authentication
+  2. Bilingual support (English/Farsi)
+  3. Page hierarchy with parent-child relationships
+  4. Draft/Publish logic (child pages can be published independently)
+  5. Admin dashboard with page tree manager
+
+### Database Setup Documentation
+- **Location**: See [DATABASE_SETUP.md](./DATABASE_SETUP.md) for complete database documentation
+- **Covers**: Turso + Drizzle ORM configuration, migrations, and schema definitions
+
+### Linking Anytype to Source Code
+When updating Anytype entries, reference specific files:
+- Database schema: `db/schema.ts`
+- Database client: `lib/db.ts`
+- Migrations: `migrations/` directory
+- Migration script: `scripts/migrate.ts`
+

@@ -1,4 +1,4 @@
-import { turso } from "@/lib/db";
+import { turso } from "@/db";
 import Editor from "./editor";
 
 export default async function EditorPage() {
