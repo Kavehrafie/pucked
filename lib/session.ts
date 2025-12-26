@@ -1,7 +1,6 @@
 import { db } from "../db";
 import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";
-import { cache } from "react";
 import { cookies } from "next/headers";
 import { addMinutes, differenceInMinutes } from "date-fns";
 import { type Session, type User, sessions } from "@/db/schema";
@@ -17,40 +16,41 @@ export async function validateSessionToken(token: string): Promise<SessionValida
 			user: true
 		}
 	})
-	
+
 	if (!session) {
 		return { session: null, user: null };
 	}
 
 	if (Date.now() >= session.expiresAt.getTime()) {
-		db.delete(sessions).where(eq(sessions.id, sessionId));
+		await db.delete(sessions).where(eq(sessions.id, sessionId));
 		return { session: null, user: null };
 	}
 
 	if (differenceInMinutes(session.expiresAt, new Date()) <= 45) {
 		session.expiresAt = addMinutes(new Date(), 60);
-		db.update(sessions).set({ expiresAt: session.expiresAt }).where(eq(sessions.id, sessionId));
+		await db.update(sessions).set({ expiresAt: session.expiresAt }).where(eq(sessions.id, sessionId));
 	}
+
 	const {user, ...sessionData} = session;
 	return { session: sessionData, user: session.user };
 }
 
-export const getCurrentSession = cache(async (): Promise<SessionValidationResult> => {
+export async function getCurrentSession(): Promise<SessionValidationResult> {
 	const token = (await cookies()).get("session")?.value ?? null;
 
 	if (token === null) {
 		return { session: null, user: null };
 	}
-	const result = validateSessionToken(token);
-	return result;
-});
 
-export function invalidateSession(sessionId: string): void {
-	db.delete(sessions).where(eq(sessions.id, sessionId));
+	return validateSessionToken(token);
 }
 
-export function invalidateUserSessions(userId: number): void {
-	db.delete(sessions).where(eq(sessions.userId, userId));
+export async function invalidateSession(sessionId: string): Promise<void> {
+	await db.delete(sessions).where(eq(sessions.id, sessionId));
+}
+
+export async function invalidateUserSessions(userId: number): Promise<void> {
+	await db.delete(sessions).where(eq(sessions.userId, userId));
 }
 
 export async function setSessionTokenCookie(token: string, expiresAt: Date): Promise<void> {
@@ -80,15 +80,15 @@ export function generateSessionToken(): string {
 	return token;
 }
 
-export function createSession(token: string, userId: number): Session {
+export async function createSession(token: string, userId: number): Promise<Session> {
 	const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
 	const session: Session = {
 		id: sessionId,
 		userId,
-		expiresAt: addMinutes(new Date(Date.now()), 60) // 1 hour session
+		expiresAt: addMinutes(new Date(Date.now()), 60)
 	};
 
-	db.insert(sessions).values(session)
+	await db.insert(sessions).values(session);
 	return session;
 }
 

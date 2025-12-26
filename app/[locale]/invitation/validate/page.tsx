@@ -4,6 +4,7 @@ import { getCurrentSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import InvitationValidateForm from "./form";
 import { headers } from "next/headers";
+import { cookies } from "next/headers";
 
 type Props = {
   params: Promise<{locale: string}>;
@@ -11,13 +12,21 @@ type Props = {
 
 export default async function SignUpPage({ params }: Props) {
 
-  const { session } = await getCurrentSession()
+  const { session, user } = await getCurrentSession()
   const { locale } = await params
+
+  // Debug logging
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get("session");
+  console.log("Invitation validate page - Session cookie exists:", !!sessionCookie);
+  console.log("Invitation validate page - Session from DB:", !!session);
+  console.log("Invitation validate page - User:", user?.username);
 
   if (!session) {
     // Get the current full path to redirect back after login
     const headersList = await headers();
     const pathname = headersList.get("x-pathname") || `/${locale}/invitation/validate`;
+    console.log("No session found, redirecting to login with redirectTo:", pathname);
     redirect(`/${locale}/login?redirectTo=${encodeURIComponent(pathname)}`)
   }
 

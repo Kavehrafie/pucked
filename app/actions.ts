@@ -104,8 +104,7 @@ export async function submitInvitation(prevState: { error: string }, formData: F
 	try {
 		await useInvitation(code, user.id);
 		await acceptInvitationForUser(user.id);
-	} catch (error) {
-		console.error("Error accepting invitation:", error);
+	} catch {
 		return { error: "Failed to accept invitation. Please try again." };
 	}
 

@@ -5,7 +5,8 @@ import { cookies } from "next/headers";
 
 import type { OAuth2Tokens } from "arctic";
 import { createUserFromGitHubId, getUserFromGitHubId } from "@/lib/users";
-import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
+import { db } from "@/db";
 
 export async function GET(request: Request): Promise<Response> {
 	const url = new URL(request.url);
@@ -35,6 +36,12 @@ export async function GET(request: Request): Promise<Response> {
 			status: 400
 		});
 	}
+
+	// Clear OAuth state cookies FIRST before setting session
+	cookieStore.delete("github_oauth_state");
+	if (storedRedirect) {
+		cookieStore.delete("github_oauth_redirect");
+	}
 	const githubUserResponse = await fetch("https://api.github.com/user", {
 		headers: {
 			Authorization: `Bearer ${tokens.accessToken()}`
@@ -55,7 +62,15 @@ export async function GET(request: Request): Promise<Response> {
 	// Always create session (user is authenticated via GitHub)
 	const sessionToken = generateSessionToken();
 	const session = await createSession(sessionToken, user.id);
-	await setSessionTokenCookie(sessionToken, session.expiresAt);
+
+	// Verify the session was actually saved by querying it back
+	const verifySession = await db.query.sessions.findFirst({
+		where: (sessions, { eq }) => eq(sessions.id, session.id)
+	});
+
+	if (!verifySession) {
+		return new Response("Failed to create session", { status: 500 });
+	}
 
 	// Determine where to redirect after login
 	let redirectPath = "/";
@@ -70,6 +85,20 @@ export async function GET(request: Request): Promise<Response> {
 		redirectPath = storedRedirect;
 	}
 
-	return redirect(redirectPath);
+	// Create a NextResponse with the redirect and set the cookie
+	const response = NextResponse.redirect(new URL(redirectPath, request.url), {
+		status: 302,
+	});
+
+	// Set the session cookie on the response
+	response.cookies.set("session", sessionToken, {
+		httpOnly: true,
+		path: "/",
+		secure: process.env.NODE_ENV === "production",
+		sameSite: "lax",
+		expires: session.expiresAt
+	});
+
+	return response;
 
 }
