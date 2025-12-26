@@ -185,3 +185,68 @@ export async function getPageStats() {
   return { total, published, drafts };
 }
 
+/**
+ * Get page content for a specific locale
+ */
+export async function getPageContent(pageId: number, locale: string) {
+  const [translation] = await db
+    .select()
+    .from(pageTranslations)
+    .where(
+      and(
+        eq(pageTranslations.pageId, pageId),
+        eq(pageTranslations.locale, locale)
+      )
+    )
+    .limit(1);
+
+  if (!translation) {
+    // Return empty content if translation doesn't exist
+    return {
+      title: "",
+      content: { root: { props: {}, children: [] } },
+      published: false,
+    };
+  }
+
+  return {
+    title: translation.title,
+    content: translation.content || { root: { props: {}, children: [] } },
+    published: translation.published,
+  };
+}
+
+/**
+ * Get page by slug with locale-specific content
+ */
+export async function getPageBySlugAndLocale(slug: string, locale: string) {
+  const [page] = await db
+    .select()
+    .from(pages)
+    .where(eq(pages.slug, slug))
+    .limit(1);
+
+  if (!page) return null;
+
+  // Get translation for this locale
+  const [translation] = await db
+    .select()
+    .from(pageTranslations)
+    .where(
+      and(
+        eq(pageTranslations.pageId, page.id),
+        eq(pageTranslations.locale, locale)
+      )
+    )
+    .limit(1);
+
+  return {
+    ...page,
+    translation: translation || {
+      title: page.title,
+      content: { root: { props: {}, children: [] } },
+      published: false,
+    },
+  };
+}
+

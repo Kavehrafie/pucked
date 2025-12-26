@@ -1,8 +1,7 @@
 import { requireAuth } from "@/lib/route-guard";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
-import "@measured/puck/puck.css";
 
-export default async function AdminLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;

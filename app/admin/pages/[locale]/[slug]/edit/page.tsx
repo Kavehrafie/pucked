@@ -1,11 +1,37 @@
-import { db } from "@/db";
+import { requireAuth } from "@/lib/route-guard";
+import { getPageBySlug, getPageContent } from "@/lib/page";
+import { notFound } from "next/navigation";
 import Editor from "./editor";
 
-export default async function EditorPage() {
+interface EditorPageProps {
+  params: {
+    locale: string;
+    slug: string;
+  };
+}
+
+export default async function EditorPage({ params }: EditorPageProps) {
+  const { user } = await requireAuth({ requireInvitation: true });
+
+  // In Next.js 15+, params is a Promise that needs to be awaited
+  const { locale, slug } = await params;
+
+  // Get page by slug
+  const page = await getPageBySlug(slug);
+
+  if (!page) {
+    notFound();
+  }
+
+  // Get page content for the specific locale
+  const pageContent = await getPageContent(page.id, locale);
 
   return (
-    <>
-      <Editor />
-    </>
+    <Editor
+      pageId={page.id}
+      locale={locale}
+      initialTitle={pageContent.title}
+      initialContent={pageContent.content}
+    />
   );
 }

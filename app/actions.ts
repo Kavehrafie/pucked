@@ -257,3 +257,101 @@ export async function savePageOrder(prevState: FormState, formData: FormData) {
 		};
 	}
 }
+
+
+const pageContentSchema = z.object({
+	title: z.string().min(1).max(200),
+	content: z.any().optional().nullable(),
+});
+
+export async function savePageContent(
+	pageId: number,
+	locale: string,
+	prevState: FormState,
+	formData: FormData
+) {
+	const { user } = await getCurrentSession();
+	if (!user) {
+		redirect("/login");
+	}
+
+	const rawTitle = formData.get("title");
+	const rawContent = formData.get("content");
+
+	// Parse content if it's a string
+	let content = rawContent;
+	if (typeof rawContent === "string") {
+		try {
+			content = JSON.parse(rawContent);
+		} catch (error) {
+			return {
+				errors: {
+					_form: ["Invalid content format. Content must be valid JSON."],
+				},
+			};
+		}
+	}
+
+	const validatedFields = pageContentSchema.safeParse({
+		title: rawTitle,
+		content: content,
+	});
+
+	if (!validatedFields.success) {
+		console.log("Validation errors:", validatedFields.error.flatten().fieldErrors);
+		return {
+			errors: validatedFields.error.flatten().fieldErrors,
+		};
+	}
+
+	const { title, content: validatedContent } = validatedFields.data;
+
+	try {
+		// Check if page exists
+		const [existingPage] = await db
+			.select()
+			.from(pages)
+			.where(eq(pages.id, pageId))
+			.limit(1);
+
+		if (!existingPage) {
+			return {
+				errors: {
+					_form: ["Page not found"],
+				},
+			};
+		}
+
+		// Update or insert page translation
+		await db
+			.insert(pageTranslations)
+			.values({
+				pageId,
+				locale,
+				title,
+				content: validatedContent || { root: { props: {}, children: [] } },
+				published: true,
+			})
+			.onConflictDoUpdate({
+				target: [pageTranslations.pageId, pageTranslations.locale],
+				set: {
+					title,
+					content: validatedContent || { root: { props: {}, children: [] } },
+					published: true,
+				},
+			});
+
+		// Revalidate paths
+		revalidatePath("/admin");
+		revalidatePath(`/${locale}/${existingPage.slug}`);
+
+		return { success: true };
+	} catch (error) {
+		console.error("Error saving page content:", error);
+		return {
+			errors: {
+				_form: ["Failed to save page content. Please try again."],
+			},
+		};
+	}
+}
