@@ -5,8 +5,26 @@ A bilingual (EN/FA) web application with a visual content management system usin
 ## Quick Links
 
 - **[CLAUDE.md](./CLAUDE.md)** - Project overview and development guide for AI assistants
-- **[DATABASE_SETUP.md](./DATABASE_SETUP.md)** - Complete database documentation (Turso + Drizzle ORM)
+- **[Documentation](./admin/docs)** - Complete project documentation (requires authentication)
 - **[Anytype Integration](./CLAUDE.md#anytype-project-references)** - How this project links to Anytype documentation
+
+## Documentation
+
+All project documentation has been moved to the admin area at `/admin/docs`. To access:
+
+1. Start the development server: `pnpm dev`
+2. Visit `http://localhost:3000/login`
+3. Login with GitHub (requires invitation code)
+4. Navigate to `/admin/docs`
+
+**Available Documentation:**
+- Getting Started
+- Authentication System
+- API Reference
+- Puck Components Guide
+- UI Guidelines
+- Server Actions Guide
+- Database Setup
 
 ## Getting Started
 

@@ -15,11 +15,9 @@ This document guides AI coding agents working on the Pucked codebase - a bilingu
 **Tech Stack**: Next.js 16.1.1, React 19.2.3, Turso, Drizzle ORM, Arctic (OAuth), next-intl, Tailwind CSS v4, TypeScript (strict mode)
 
 **Documentation**:
-- `docs/PUCK_COMPONENTS_GUIDE.md` - **Comprehensive guide for using @measured/puck components in admin area**
-- `docs/UI_GUIDELINES.md` - UI patterns, styling conventions, and design system standards
-- `docs/SERVER_ACTIONS_GUIDE.md` - Server action patterns
-- `docs/INVITATION_SYSTEM.md` - Complete auth flow documentation
-- `DATABASE_SETUP.md` - Database documentation
+- All documentation is now available in the admin area at `/admin/docs`
+- Key docs include: Puck Components Guide, UI Guidelines, Server Actions Guide, Authentication System, Database Setup
+- Access via `/admin/docs` after authentication
 
 ## Critical Architecture Patterns
 
@@ -285,7 +283,7 @@ export function CustomDataForm() {
 - **Admin Area** (`/admin/*`): Uses `@measured/puck` components and styling
 - **Guest/Public Area** (`/app/[locale]/*`): Uses Shadcn UI components
 
-**📖 IMPORTANT**: For detailed information about using Puck components in the admin area, see `docs/PUCK_COMPONENTS_GUIDE.md`. This guide includes:
+**📖 IMPORTANT**: For detailed information about using Puck components in the admin area, see the Puck Components Guide at `/admin/docs/dev/puck-components`. This guide includes:
 - Complete API documentation for all Puck components (ActionBar, Button, Drawer, IconButton, etc.)
 - Common patterns and usage examples
 - Common pitfalls and how to avoid them
@@ -306,7 +304,7 @@ export function CustomDataForm() {
 - Import directly from `@measured/puck`
 - Uses Puck's design system for consistency with the page editor
 
-**📖 See `docs/PUCK_COMPONENTS_GUIDE.md` for complete documentation**
+**📖 See the Puck Components Guide at `/admin/docs/dev/puck-components` for complete documentation**
 
 **Available Puck Components**:
 - **ActionBar** - Action bar with label and action buttons
@@ -442,7 +440,7 @@ npx shadcn@latest add [component-name]
 </div>
 ```
 
-**For detailed patterns, forms, layouts, and examples, see `docs/UI_GUIDELINES.md`**
+**For detailed patterns, forms, layouts, and examples, see the UI Guidelines at `/admin/docs/dev/ui-guidelines`**
 
 ## Common Pitfalls
 
@@ -481,11 +479,12 @@ npx shadcn@latest add [component-name]
 - `app/actions.ts` - Server actions (submitInvitation, loginWithGitHub, logout, createPageAction)
 
 **Documentation**:
-- `docs/PUCK_COMPONENTS_GUIDE.md` - **Comprehensive guide for using @measured/puck components in admin area**
-- `docs/UI_GUIDELINES.md` - **Comprehensive UI patterns, styling conventions, and design system standards**
-- `docs/SERVER_ACTIONS_GUIDE.md` - Server action patterns
-- `docs/INVITATION_SYSTEM.md` - Complete auth flow documentation
-- `DATABASE_SETUP.md` - Database documentation
+- All documentation is now available in the admin area at `/admin/docs`
+- Puck Components Guide at `/admin/docs/dev/puck-components` - **Comprehensive guide for using @measured/puck components in admin area**
+- UI Guidelines at `/admin/docs/dev/ui-guidelines` - **Comprehensive UI patterns, styling conventions, and design system standards**
+- Server Actions Guide at `/admin/docs/dev/server-actions` - Server action patterns
+- Authentication System at `/admin/docs/dev/authentication` - Complete auth flow documentation
+- Database Setup at `/admin/docs/dev/database-setup` - Database documentation
 
 ## Development Workflows
 

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -138,4 +139,169 @@
 
 [dir="ltr"] .ltr\:text-left {
   text-align: left;
+}
+
+/* Markdown Content Styles */
+.markdown-content {
+  @apply prose prose-neutral dark:prose-invert max-w-none;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  @apply scroll-mt-20;
+}
+
+.markdown-content a {
+  @apply text-primary hover:text-primary/80;
+}
+
+.markdown-content code {
+  @apply font-mono;
+}
+
+.markdown-content pre {
+  @apply bg-muted rounded-lg p-4 overflow-x-auto;
+}
+
+.markdown-content pre code {
+  @apply bg-transparent p-0;
+}
+
+.markdown-content table {
+  @apply w-full border-collapse;
+}
+
+.markdown-content th,
+.markdown-content td {
+  @apply border border-border px-4 py-2 text-left;
+}
+
+.markdown-content blockquote {
+  @apply border-l-4 border-primary pl-4 italic;
+}
+
+/* Syntax Highlighting - Light Theme */
+.hljs {
+  background: oklch(0.98 0 0);
+  color: oklch(0.2 0 0);
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: oklch(0.5 0 0);
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-type {
+  color: oklch(0.5 0.2 285);
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-name {
+  color: oklch(0.55 0.2 150);
+}
+
+.hljs-number,
+.hljs-symbol {
+  color: oklch(0.6 0.2 30);
+}
+
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable {
+  color: oklch(0.55 0.2 285);
+}
+
+.hljs-built_in,
+.hljs-builtin-name {
+  color: oklch(0.5 0.2 200);
+}
+
+.hljs-link {
+  color: oklch(0.55 0.2 285);
+  text-decoration: underline;
+}
+
+.hljs-meta {
+  color: oklch(0.5 0 0);
+}
+
+.hljs-deletion {
+  background: oklch(0.9 0.05 20);
+}
+
+.hljs-addition {
+  background: oklch(0.9 0.05 140);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+/* Syntax Highlighting - Dark Theme */
+.dark .hljs {
+  background: oklch(0.2 0 0);
+  color: oklch(0.9 0 0);
+}
+
+.dark .hljs-comment,
+.dark .hljs-quote {
+  color: oklch(0.6 0 0);
+}
+
+.dark .hljs-keyword,
+.dark .hljs-selector-tag,
+.dark .hljs-literal,
+.dark .hljs-type {
+  color: oklch(0.7 0.2 285);
+}
+
+.dark .hljs-string,
+.dark .hljs-title,
+.dark .hljs-name {
+  color: oklch(0.75 0.2 150);
+}
+
+.dark .hljs-number,
+.dark .hljs-symbol {
+  color: oklch(0.8 0.2 30);
+}
+
+.dark .hljs-attr,
+.dark .hljs-variable,
+.dark .hljs-template-variable {
+  color: oklch(0.75 0.2 285);
+}
+
+.dark .hljs-built_in,
+.dark .hljs-builtin-name {
+  color: oklch(0.7 0.2 200);
+}
+
+.dark .hljs-link {
+  color: oklch(0.75 0.2 285);
+}
+
+.dark .hljs-meta {
+  color: oklch(0.6 0 0);
+}
+
+.dark .hljs-deletion {
+  background: oklch(0.3 0.05 20);
+}
+
+.dark .hljs-addition {
+  background: oklch(0.3 0.05 140);
 }
