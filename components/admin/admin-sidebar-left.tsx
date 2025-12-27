@@ -21,7 +21,7 @@ const navigation = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const { sidebarVisible } = useAdminLayout();
+  const { sidebarLeftVisible } = useAdminLayout();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -34,12 +34,13 @@ export function AdminSidebar() {
         />
       )}
 
+      {/* Sidebar left  */}
       <aside
         data-sidebar
-        data-sidebar-visible={sidebarVisible}
+        data-sidebar-visible={sidebarLeftVisible}
         className={cn(
           "fixed top-0 left-0 z-50 h-screen w-64 transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 flex-shrink-0",
-          !sidebarVisible && "-translate-x-full lg:translate-x-0 lg:w-0 lg:overflow-hidden",
+          !sidebarLeftVisible && "-translate-x-full lg:translate-x-0 lg:w-0 lg:overflow-hidden",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
         style={{
@@ -49,33 +50,10 @@ export function AdminSidebar() {
           overflowY: "auto",
           background: "var(--puck-color-grey-12)",
           borderInlineEnd: "1px solid var(--puck-color-grey-09)",
-          gridArea: "left",
           transition: "width 150ms ease-in"
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-          {/* Mobile close button */}
-          <div
-            className="lg:hidden"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "var(--puck-space-px)",
-              borderBottom: "1px solid var(--puck-color-grey-09)"
-            }}
-          >
-            <span style={{ fontSize: "var(--puck-font-size-s)", fontWeight: 600, color: "var(--puck-color-black)" }}>
-              Menu
-            </span>
-            <IconButton
-              type="button"
-              title="Close menu"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <X focusable="false" />
-            </IconButton>
-          </div>
 
           {/* Logo/Brand - Desktop only */}
           <div
@@ -98,7 +76,7 @@ export function AdminSidebar() {
                 textDecoration: "none"
               }}
             >
-              Pucked
+              Primary
             </Link>
           </div>
 
@@ -155,6 +133,7 @@ export function AdminSidebar() {
           </div>
         </div>
       </aside>
+
     </>
   );
 }

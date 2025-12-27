@@ -6,16 +6,17 @@ import {CSS} from '@dnd-kit/utilities';
 import {TreeItem, Props as TreeItemProps} from './TreeItem';
 import {iOS} from '../utilities';
 
-interface Props extends Omit<TreeItemProps, 'translations' | 'pageSlug'> {
+interface Props extends Omit<TreeItemProps, 'translations' | 'pageSlug' | 'onClick'> {
   id: UniqueIdentifier;
   translations?: TreeItemProps['translations'];
   pageSlug?: string;
+  onClick?: TreeItemProps['onClick'];
 }
 
 const animateLayoutChanges: AnimateLayoutChanges = ({isSorting, wasDragging}) =>
   !(isSorting || wasDragging);
 
-export function SortableTreeItem({id, depth, translations, pageSlug, ...props}: Props) {
+export function SortableTreeItem({id, depth, translations, pageSlug, onClick, ...props}: Props) {
   const {
     attributes,
     isDragging,
@@ -49,6 +50,7 @@ export function SortableTreeItem({id, depth, translations, pageSlug, ...props}: 
       }}
       translations={translations}
       pageSlug={pageSlug}
+      onClick={onClick}
       {...props}
     />
   );

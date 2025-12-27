@@ -26,11 +26,15 @@ import type { UniqueIdentifier } from "@dnd-kit/core";
 import type { TreeItem, FlattenedItem } from "@/components/types";
 import { Badge } from "../ui/badge";
 import type { PageTranslationStatus } from "@/lib/page";
+import { usePageSelection } from "@/components/admin/page-selection-context";
+import { Page } from "@/db/schema";
 
 export interface PageTreeNode {
   id: string;
   title: string;
   slug: string;
+  isDraft: boolean;
+  showOnMenu: boolean;
   translations?: PageTranslationStatus[];
   children?: PageTreeNode[];
   collapsed?: boolean;
@@ -58,15 +62,19 @@ function toPageTreeNode(
   item: TreeItem,
   titleMap: Map<string, string>,
   slugMap: Map<string, string>,
-  translationsMap: Map<string, PageTranslationStatus[]>
+  translationsMap: Map<string, PageTranslationStatus[]>,
+  isDraftMap: Map<string, boolean>,
+  showOnMenuMap: Map<string, boolean>
 ): PageTreeNode {
   const id = String(item.id);
   return {
     id,
     title: titleMap.get(id) || '',
     slug: slugMap.get(id) || '',
+    isDraft: isDraftMap.get(id) || false,
+    showOnMenu: showOnMenuMap.get(id) || true,
     translations: translationsMap.get(id) || [],
-    children: item.children.map(child => toPageTreeNode(child, titleMap, slugMap, translationsMap)),
+    children: item.children.map(child => toPageTreeNode(child, titleMap, slugMap, translationsMap, isDraftMap, showOnMenuMap)),
     collapsed: item.collapsed,
   };
 }
@@ -133,7 +141,9 @@ function buildTreeFromFlattened(
   flattenedItems: FlattenedItem[],
   titleMap: Map<string, string>,
   slugMap: Map<string, string>,
-  translationsMap: Map<string, PageTranslationStatus[]>
+  translationsMap: Map<string, PageTranslationStatus[]>,
+  isDraftMap: Map<string, boolean>,
+  showOnMenuMap: Map<string, boolean>
 ): PageTreeNode[] {
   const root: TreeItem = { id: 'root', children: [] };
   const nodes: Record<string, TreeItem> = { [root.id]: root };
@@ -152,7 +162,7 @@ function buildTreeFromFlattened(
     parent.children.push(nodes[item.id]);
   }
 
-  return root.children.map(item => toPageTreeNode(item, titleMap, slugMap, translationsMap));
+  return root.children.map(item => toPageTreeNode(item, titleMap, slugMap, translationsMap, isDraftMap, showOnMenuMap));
 }
 
 // Get projection for drag
@@ -212,6 +222,7 @@ export function SortableTree({
   removable = false,
   indentationWidth = 24,
 }: SortableTreeProps) {
+  const { setSelectedPage } = usePageSelection();
   const [mounted, setMounted] = useState(false);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
@@ -246,6 +257,30 @@ export function SortableTree({
       });
     };
     collectSlugs(itemsState);
+    return map;
+  }, [itemsState]);
+
+  const isDraftMap = useMemo(() => {
+    const map = new Map<string, boolean>();
+    const collectDrafts = (nodes: PageTreeNode[]) => {
+      nodes.forEach(node => {
+        map.set(node.id, node.isDraft);
+        if (node.children) collectDrafts(node.children);
+      });
+    };
+    collectDrafts(itemsState);
+    return map;
+  }, [itemsState]);
+
+  const showOnMenuMap = useMemo(() => {
+    const map = new Map<string, boolean>();
+    const collectShowOnMenu = (nodes: PageTreeNode[]) => {
+      nodes.forEach(node => {
+        map.set(node.id, node.showOnMenu);
+        if (node.children) collectShowOnMenu(node.children);
+      });
+    };
+    collectShowOnMenu(itemsState);
     return map;
   }, [itemsState]);
 
@@ -334,7 +369,7 @@ export function SortableTree({
       const overIndex = flattenedItemsWithProjection.findIndex(({ id }) => id === over.id);
       const sortedItems = arrayMove(flattenedItemsWithProjection, activeIndex, overIndex);
 
-      const newItems = buildTreeFromFlattened(sortedItems, titleMap, slugMap, translationsMap);
+      const newItems = buildTreeFromFlattened(sortedItems, titleMap, slugMap, translationsMap, isDraftMap, showOnMenuMap);
       setItemsState(newItems);
       onChange?.(newItems);
     }
@@ -431,6 +466,19 @@ export function SortableTree({
                       : undefined
                   }
                   onRemove={removable ? () => handleRemove(id) : undefined}
+                  onClick={() => {
+                    // Create a Page object from the node data
+                    const page: Page = {
+                      id: parseInt(node.id, 10),
+                      title: node.title,
+                      slug: node.slug,
+                      isDraft: node.isDraft,
+                      showOnMenu: node.showOnMenu,
+                      sortOrder: 0,
+                      parentId: null,
+                    };
+                    setSelectedPage(page);
+                  }}
                 />
               );
             }

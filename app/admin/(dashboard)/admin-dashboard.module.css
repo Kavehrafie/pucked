@@ -44,13 +44,15 @@
 }
 
 .adminDashboardContent {
-  display: flex;
+  display: grid;
+  grid-template-areas: "left main right";
+  grid-template-columns: auto 1fr auto;
   flex: 1;
   overflow: hidden;
 }
 
 .adminDashboardMain {
-  flex: 1;
+  grid-area: main;
   overflow: auto;
 }
 

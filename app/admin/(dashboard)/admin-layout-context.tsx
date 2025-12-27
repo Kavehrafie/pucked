@@ -3,9 +3,12 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 
 type AdminLayoutState = {
-  sidebarVisible: boolean;
-  setSidebarVisible: (visible: boolean) => void;
-  toggleSidebar: () => void;
+  sidebarLeftVisible: boolean;
+  setSidebarLeftVisible: (visible: boolean) => void;
+  toggleSidebarLeft: () => void;
+  sidebarRightVisible: boolean;
+  setSidebarRightVisible: (visible: boolean) => void;
+  toggleSidebarRight: () => void;
 };
 
 const AdminLayoutContext = createContext<AdminLayoutState | undefined>(
@@ -13,15 +16,20 @@ const AdminLayoutContext = createContext<AdminLayoutState | undefined>(
 );
 
 export function AdminLayoutProvider({ children }: { children: ReactNode }) {
-  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [sidebarLeftVisible, setSidebarLeftVisible] = useState(true);
+  const [sidebarRightVisible, setSidebarRightVisible] = useState(true);
+  
+  const toggleSidebarLeft = () => {
+    setSidebarLeftVisible((prev) => !prev);
+  };
 
-  const toggleSidebar = () => {
-    setSidebarVisible((prev) => !prev);
+  const toggleSidebarRight = () => {
+    setSidebarRightVisible((prev) => !prev);
   };
 
   return (
     <AdminLayoutContext.Provider
-      value={{ sidebarVisible, setSidebarVisible, toggleSidebar }}
+      value={{ sidebarLeftVisible, setSidebarLeftVisible, toggleSidebarLeft, sidebarRightVisible, setSidebarRightVisible, toggleSidebarRight }}
     >
       {children}
     </AdminLayoutContext.Provider>

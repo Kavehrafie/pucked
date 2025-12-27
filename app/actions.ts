@@ -355,3 +355,170 @@ export async function savePageContent(
 		};
 	}
 }
+
+const updatePageSchema = z.object({
+	pageId: z.string().transform((val) => parseInt(val, 10)),
+	title: z.string().min(1).max(200),
+	slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
+	isDraft: z.string().optional().transform((val) => val === "on"),
+	showOnMenu: z.string().optional().transform((val) => val === "on"),
+});
+
+export async function updatePageAction(prevState: FormState, formData: FormData) {
+	const { user } = await getCurrentSession();
+	if (!user) {
+		redirect("/login");
+	}
+
+	const validatedFields = updatePageSchema.safeParse({
+		pageId: formData.get("pageId"),
+		title: formData.get("title"),
+		slug: formData.get("slug"),
+		isDraft: formData.get("isDraft"),
+		showOnMenu: formData.get("showOnMenu"),
+	});
+
+	if (!validatedFields.success) {
+		return {
+			errors: validatedFields.error.flatten().fieldErrors,
+		};
+	}
+
+	const { pageId, title, slug, isDraft, showOnMenu } = validatedFields.data;
+
+	try {
+		// Check if page exists
+		const [existingPage] = await db
+			.select()
+			.from(pages)
+			.where(eq(pages.id, pageId))
+			.limit(1);
+
+		if (!existingPage) {
+			return {
+				errors: {
+					_form: ["Page not found"],
+				},
+				success: false,
+			};
+		}
+
+		// Check if slug is already taken by another page
+		const [slugConflict] = await db
+			.select()
+			.from(pages)
+			.where(eq(pages.slug, slug))
+			.limit(1);
+
+		if (slugConflict && slugConflict.id !== pageId) {
+			return {
+				errors: {
+					slug: ["This slug is already in use by another page"],
+				},
+				success: false,
+			};
+		}
+
+		// Update page
+		await db
+			.update(pages)
+			.set({
+				title,
+				slug,
+				isDraft,
+				showOnMenu,
+			})
+			.where(eq(pages.id, pageId));
+
+		// Revalidate paths
+		revalidatePath("/admin");
+		revalidatePath(`/${existingPage.slug}`);
+
+		return { success: true };
+	} catch (error) {
+		console.error("Error updating page:", error);
+		return {
+			errors: {
+				_form: ["Failed to update page. Please try again."],
+			},
+			success: false,
+		};
+	}
+}
+
+const deletePageSchema = z.object({
+	pageId: z.string().transform((val) => parseInt(val, 10)),
+});
+
+export async function deletePageAction(prevState: FormState, formData: FormData) {
+	const { user } = await getCurrentSession();
+	if (!user) {
+		redirect("/login");
+	}
+
+	const validatedFields = deletePageSchema.safeParse({
+		pageId: formData.get("pageId"),
+	});
+
+	if (!validatedFields.success) {
+		return {
+			errors: {
+				_form: ["Invalid page ID"],
+			},
+			success: false,
+		};
+	}
+
+	const { pageId } = validatedFields.data;
+
+	try {
+		// Check if page exists
+		const [existingPage] = await db
+			.select()
+			.from(pages)
+			.where(eq(pages.id, pageId))
+			.limit(1);
+
+		if (!existingPage) {
+			return {
+				errors: {
+					_form: ["Page not found"],
+				},
+				success: false,
+			};
+		}
+
+		// Check if page has children
+		const [childPage] = await db
+			.select()
+			.from(pages)
+			.where(eq(pages.parentId, pageId))
+			.limit(1);
+
+		if (childPage) {
+			return {
+				errors: {
+					_form: ["Cannot delete page with child pages. Please move or delete child pages first."],
+				},
+				success: false,
+			};
+		}
+
+		// Delete page (cascade will delete translations)
+		await db.delete(pages).where(eq(pages.id, pageId));
+
+		// Revalidate paths
+		revalidatePath("/admin");
+		revalidatePath(`/${existingPage.slug}`);
+
+		return { success: true };
+	} catch (error) {
+		console.error("Error deleting page:", error);
+		return {
+			errors: {
+				_form: ["Failed to delete page. Please try again."],
+			},
+			success: false,
+		};
+	}
+}

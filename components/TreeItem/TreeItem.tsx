@@ -25,6 +25,7 @@ export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, 'id'> {
   pageSlug?: string;
   onCollapse?(): void;
   onRemove?(): void;
+  onClick?(): void;
   wrapperRef?(node: HTMLLIElement): void;
 }
 
@@ -43,6 +44,7 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
       collapsed,
       onCollapse,
       onRemove,
+      onClick,
       style,
       value,
       translations,
@@ -70,17 +72,21 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
       >
         <div
           className={cn(
-            "flex items-center gap-2 rounded-lg border bg-card px-3 py-2.5 shadow-sm transition-all duration-200",
+            "flex items-center gap-2 rounded-lg border bg-card px-3 py-2.5 shadow-sm transition-all duration-200 cursor-pointer",
             !disableInteraction && "hover:bg-accent/50",
             indicator && !ghost ? "border-primary border-2 bg-primary/5" : "border-border"
           )}
           ref={ref}
           style={style}
+          onClick={onClick}
         >
           <Handle {...handleProps} />
           {onCollapse && (
             <Action
-              onClick={onCollapse}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCollapse();
+              }}
               className={cn(
                 "shrink-0 text-muted-foreground hover:text-foreground transition-transform",
                 !collapsed && "-rotate-180"
@@ -98,6 +104,7 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
                 <Link
                   key={translation.locale}
                   href={`/admin/pages/${translation.locale}/${pageSlug}/edit`}
+                  onClick={(e) => e.stopPropagation()}
                   className={cn(
                     "flex items-center justify-center w-7 h-7 rounded-md text-xs font-semibold transition-colors",
                     translation.published
@@ -114,7 +121,10 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
             </div>
           )}
           
-          {!clone && onRemove && <Remove onClick={onRemove} />}
+          {!clone && onRemove && <Remove onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }} />}
           {clone && childCount && childCount > 1 ? (
             <span className="text-xs text-muted-foreground">{childCount}</span>
           ) : null}
