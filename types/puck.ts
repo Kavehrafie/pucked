@@ -5,23 +5,23 @@ import type { ComponentData, Data } from "@measured/puck";
  * Add your component props here as you define them
  */
 export type ComponentProps = {
-  HeadingBlock?: {
+  HeadingBlock: {
     title: string;
     level?: 1 | 2 | 3 | 4 | 5 | 6;
   };
-  GridBlock?: {
+  GridBlock: {
     columns?: 1 | 2 | 3 | 4;
     gap?: number;
   };
-LinkBlock?: {
+  LinkBlock: {
     href: string;
     label: string;
     openInNewTab?: boolean;
   };
-TipTapBlock?: {
+  TipTapBlock: {
     content: string;
   };
-  SpacerBlock?: {
+  SpacerBlock: {
     height: number;
   };
 };
@@ -32,6 +32,9 @@ TipTapBlock?: {
 export type RootProps = {
   title?: string;
   description?: string;
+  published?: boolean;
+  showNavbar?: boolean;
+  showFooter?: boolean;
 };
 
 /**

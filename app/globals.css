@@ -122,3 +122,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* RTL Support */
+[dir="rtl"] {
+  font-family: var(--font-vazirmatn), var(--font-geist-sans), sans-serif;
+}
+
+[dir="rtl"] .rtl\:space-x-reverse {
+  space-x-reverse: true;
+}
+
+[dir="rtl"] .rtl\:text-right {
+  text-align: right;
+}
+
+[dir="ltr"] .ltr\:text-left {
+  text-align: left;
+}

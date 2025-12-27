@@ -50,6 +50,20 @@
       "when": 1766740421576,
       "tag": "0006_nice_archangel",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1766825592197,
+      "tag": "0007_lush_tarot",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1766828318372,
+      "tag": "0008_bumpy_gorilla_man",
+      "breakpoints": true
     }
   ]
 }

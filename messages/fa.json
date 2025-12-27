@@ -2,5 +2,15 @@
   "HomePage": {
     "title": "صفحه اصلی",
     "WelcomeMessage": "به صفحه اصلی خوش آمدید"
+  },
+  "Navigation": {
+    "menu": "منو",
+    "closeMenu": "بستن منو",
+    "languageSwitcher": "زبان"
+  },
+  "Footer": {
+    "copyright": "© ۲۰۲۵ پاکد. تمامی حقوق محفوظ است.",
+    "quickLinks": "لینک‌های سریع",
+    "socialLinks": "ما را دنبال کنید"
   }
 }

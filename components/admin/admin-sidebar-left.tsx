@@ -10,13 +10,13 @@ import {
   Settings,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { Component, useState } from "react";
 import { useAdminLayout } from "@/app/admin/(dashboard)/admin-layout-context";
 
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { name: "Pages", href: "/admin/pages", icon: FileText },
-  { name: "Settings", href: "/admin/settings", icon: Settings },
+  { name: "Pages", href: "/admin/pages", icon: FileText, disable: true },
+  { name: "Settings", href: "/admin/settings", icon: Settings, disable: true },
 ];
 
 export function AdminSidebar() {
@@ -85,9 +85,9 @@ export function AdminSidebar() {
             {navigation.map((item) => {
               const isActive = pathname === item.href;
               const Icon = item.icon;
-
+              const TagName = item.disable ? "div" : Link;
               return (
-                <Link
+                <TagName
                   key={item.name}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
@@ -120,7 +120,7 @@ export function AdminSidebar() {
                 >
                   <Icon style={{ width: "16px", height: "16px", flexShrink: 0 }} />
                   {item.name}
-                </Link>
+                </TagName>
               );
             })}
           </nav>

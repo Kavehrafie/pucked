@@ -32,6 +32,8 @@ export default async function EditorPage({ params }: EditorPageProps) {
       locale={locale}
       initialTitle={pageContent.title}
       initialContent={pageContent.content}
+      initialPublished={pageContent.published}
+      initialIsDraft={page.isDraft}
     />
   );
 }

@@ -1,10 +1,8 @@
 import { requireAuth } from "@/lib/route-guard";
-import { getPagesTree } from "@/lib/page";
 import { PagesTree } from "./pages-tree";
 
 export default async function DashboardPage() {
   await requireAuth({ requireInvitation: true });
-  const pagesTree = await getPagesTree();
 
   return (
     <div className="p-6 space-y-6">
@@ -12,7 +10,7 @@ export default async function DashboardPage() {
         <h1 className="text-xl font-semibold text-foreground">Pages</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage your site pages and content structure</p>
       </div>
-      <PagesTree initialItems={pagesTree} />
+      <PagesTree />
     </div>
   );
 }

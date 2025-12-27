@@ -1,0 +1,1 @@
+ALTER TABLE `pages` ADD `full_path` text DEFAULT '' NOT NULL;

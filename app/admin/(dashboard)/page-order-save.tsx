@@ -22,16 +22,29 @@ export function SavePageOrderButton({ onSaveSuccess }: SavePageOrderButtonProps)
   const hasCalledSuccess = useRef(false)
 
   const handleSubmit = (formData: FormData) => {
+    console.log('[SavePageOrderButton] handleSubmit called')
+    
     // Get the current page order from the SortableTree component
     const treeElement = document.querySelector('[data-pages-order]')
+    console.log('[SavePageOrderButton] treeElement:', treeElement)
+    
     if (treeElement) {
       const orderData = treeElement.getAttribute('data-pages-order')
+      console.log('[SavePageOrderButton] orderData:', orderData)
+      
       if (orderData) {
         formData.append('order', orderData)
+        console.log('[SavePageOrderButton] FormData order appended, calling formAction')
         hasCalledSuccess.current = false
         return formAction(formData)
+      } else {
+        console.error('[SavePageOrderButton] No orderData found in attribute')
       }
+    } else {
+      console.error('[SavePageOrderButton] No treeElement found with [data-pages-order]')
     }
+    
+    console.log('[SavePageOrderButton] Falling back to formAction without order data')
     return formAction(formData)
   }
 

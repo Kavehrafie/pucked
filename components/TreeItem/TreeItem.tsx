@@ -23,6 +23,8 @@ export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, 'id'> {
   value: string;
   translations?: PageTranslationStatus[];
   pageSlug?: string;
+  pageId?: string;
+  isSelected?: boolean;
   onCollapse?(): void;
   onRemove?(): void;
   onClick?(): void;
@@ -49,6 +51,8 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
       value,
       translations,
       pageSlug,
+      pageId,
+      isSelected,
       wrapperRef,
       ...props
     },
@@ -74,7 +78,8 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
           className={cn(
             "flex items-center gap-2 rounded-lg border bg-card px-3 py-2.5 shadow-sm transition-all duration-200 cursor-pointer",
             !disableInteraction && "hover:bg-accent/50",
-            indicator && !ghost ? "border-primary border-2 bg-primary/5" : "border-border"
+            isSelected && "border-primary border-2 bg-primary/10 ring-2 ring-primary/20",
+            !isSelected && indicator && !ghost ? "border-primary border-2 bg-primary/5" : "border-border"
           )}
           ref={ref}
           style={style}
@@ -97,7 +102,7 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
           )}
           <span className="flex-1 truncate text-sm font-medium text-foreground">{value}</span>
           
-          {/* Locale indicators */}
+          {/* Translation badges */}
           {!clone && translations && translations.length > 0 && (
             <div className="flex items-center gap-1.5">
               {translations.map((translation) => (
@@ -108,12 +113,10 @@ export const TreeItem = forwardRef<HTMLDivElement, Props>(
                   className={cn(
                     "flex items-center justify-center w-7 h-7 rounded-md text-xs font-semibold transition-colors",
                     translation.published
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : translation.hasContent
-                      ? "bg-muted text-muted-foreground hover:bg-muted/70"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                      : "bg-muted text-muted-foreground hover:bg-muted/70"
                   )}
-                  title={`${translation.locale.toUpperCase()} - ${translation.published ? 'Published' : translation.hasContent ? 'Draft' : 'No content'}`}
+                  title={`${translation.locale.toUpperCase()} - ${translation.published ? 'Published' : 'Draft'}`}
                 >
                   {translation.locale === 'en' ? 'EN' : 'FA'}
                 </Link>

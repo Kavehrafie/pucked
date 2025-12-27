@@ -35,6 +35,7 @@ export const pages = sqliteTable("pages", {
   id: integer("id").primaryKey(),
   title: text("title").notNull(),
   slug: text("slug").notNull().unique(),
+  fullPath: text("full_path").notNull().default(""),
   isDraft: integer("is_draft", { mode: "boolean" }).notNull().default(false),
   showOnMenu: integer("show_on_menu", { mode: "boolean" }).notNull().default(true),
   parentId: integer("parent_id").references((): AnySQLiteColumn => pages.id, { onDelete: "set null" }),
@@ -45,11 +46,21 @@ export const pageTranslations = sqliteTable("page_translations", {
   pageId: integer("page_id").notNull().references(() => pages.id, { onDelete: "cascade" }),
   locale: text("locale").notNull(),
   title: text("title").notNull(),
+  // footnoteVisible: integer("footnote_visible", { mode: "boolean" }).notNull().default(true),
+  // headerVisible: integer("header_visible", { mode: "boolean" }).notNull().default(true),
   content: text("content", { mode: "json" }),  // json content for pucked
   published: integer("published", { mode: "boolean" }).notNull().default(false),
 }, (table) => [
   unique().on(table.pageId, table.locale),
 ]);
+
+export const siteSettings = sqliteTable("site_settings", {
+  id: integer("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  category: text("category").notNull().default("general"),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
 
 export const userRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
@@ -91,6 +102,8 @@ export const pageTranslationRelations = relations(pageTranslations, ({ one }) =>
   }),
 }));
 
+export const siteSettingsRelations = relations(siteSettings, ({ many }) => ({}));
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
@@ -101,3 +114,5 @@ export type Page = typeof pages.$inferSelect;
 export type NewPage = typeof pages.$inferInsert;
 export type PageTranslation = typeof pageTranslations.$inferSelect;
 export type NewPageTranslation = typeof pageTranslations.$inferInsert;
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type NewSiteSetting = typeof siteSettings.$inferInsert;

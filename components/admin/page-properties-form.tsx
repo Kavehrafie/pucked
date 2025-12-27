@@ -1,16 +1,29 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { Button } from "@measured/puck";
-import { Trash2, Save } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { updatePageAction, deletePageAction } from "@/app/actions";
 import { Page } from "@/db/schema";
+import { useNotifications } from "@/contexts/notification-context";
+import { usePageTree } from "@/contexts/page-tree-context";
+import { usePageSelection } from "@/components/admin/page-selection-context";
+import { cn } from "@/lib/utils";
 
 interface PagePropertiesFormProps {
   page: Page;
 }
 
-const initialState = {
+type FormState = {
+  success?: boolean;
+  updatedPage?: Page;
+  errors?: {
+    _form?: string[];
+    [key: string]: any;
+  };
+};
+
+const initialState: FormState = {
   success: false,
   errors: {}
 };
@@ -18,54 +31,72 @@ const initialState = {
 export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
   const [state, formAction] = useActionState(updatePageAction as any, initialState);
   const [deleteState, deleteFormAction] = useActionState(deletePageAction as any, initialState);
+  const { showSuccess, showError } = useNotifications();
+  const { updatePageInTree, removePageFromTree } = usePageTree();
+  const { setSelectedPage, clearSelection } = usePageSelection();
+
+  // Handle successful update
+  useEffect(() => {
+    if (state.success && state.updatedPage) {
+      showSuccess("Page updated successfully!");
+      updatePageInTree(state.updatedPage);
+      // Update the selected page in context
+      setSelectedPage(state.updatedPage);
+    }
+  }, [state.success, state.updatedPage, showSuccess, updatePageInTree, setSelectedPage]);
+
+  // Handle successful delete
+  useEffect(() => {
+    if (deleteState.success) {
+      showSuccess("Page deleted successfully!");
+      removePageFromTree(page.id);
+      clearSelection();
+    }
+  }, [deleteState.success, showSuccess, removePageFromTree, page.id, clearSelection]);
+
+  // Handle form errors
+  useEffect(() => {
+    if (state.errors && Object.keys(state.errors).length > 0) {
+      // Only show notification for form-level errors, not field errors
+      if (state.errors._form) {
+        showError(state.errors._form[0] || "Failed to update page");
+      }
+    }
+  }, [state.errors, showError]);
+
+  // Handle delete errors
+  useEffect(() => {
+    if (deleteState.errors && Object.keys(deleteState.errors).length > 0) {
+      if (deleteState.errors._form) {
+        showError(deleteState.errors._form[0] || "Failed to delete page");
+      }
+    }
+  }, [deleteState.errors, showError]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+    <div className="flex flex-col gap-4">
       {/* Page ID */}
       <div>
-        <label
-          style={{
-            display: "block",
-            fontSize: "var(--puck-font-size-xxs)",
-            fontWeight: 500,
-            color: "var(--puck-color-grey-05)",
-            marginBottom: "4px"
-          }}
-        >
+        <label className="block text-xs font-medium text-muted-foreground mb-1">
           Page ID
         </label>
         <input
           type="text"
           value={page.id}
           disabled
-          style={{
-            width: "100%",
-            padding: "8px 12px",
-            borderRadius: "4px",
-            border: "1px solid var(--puck-color-grey-09)",
-            background: "var(--puck-color-grey-11)",
-            color: "var(--puck-color-grey-05)",
-            fontSize: "var(--puck-font-size-xxs)",
-            cursor: "not-allowed"
-          }}
+          className="w-full px-3 py-2 rounded-md border border-border bg-muted text-muted-foreground text-xs cursor-not-allowed"
         />
       </div>
 
       {/* Title Form */}
-      <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <form action={formAction} className="flex flex-col gap-4">
         <input type="hidden" name="pageId" value={page.id} />
 
         {/* Title */}
         <div>
           <label
             htmlFor="title"
-            style={{
-              display: "block",
-              fontSize: "var(--puck-font-size-xxs)",
-              fontWeight: 500,
-              color: "var(--puck-color-black)",
-              marginBottom: "4px"
-            }}
+            className="block text-xs font-medium text-foreground mb-1"
           >
             Title
           </label>
@@ -76,20 +107,15 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
             defaultValue={page.title}
             placeholder="Enter page title"
             required
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              borderRadius: "4px",
-              border: !state.success && state.errors && 'title' in state.errors
-                ? "1px solid var(--puck-color-red-06)"
-                : "1px solid var(--puck-color-grey-08)",
-              fontSize: "var(--puck-font-size-xxs)",
-              background: "var(--puck-color-white)",
-              color: "var(--puck-color-black)"
-            }}
+            className={cn(
+              "w-full px-3 py-2 rounded-md border bg-background text-foreground text-xs",
+              !state.success && state.errors && 'title' in state.errors
+                ? "border-destructive"
+                : "border-input"
+            )}
           />
           {!state.success && state.errors && 'title' in state.errors && Array.isArray(state.errors.title) && state.errors.title.length > 0 && (
-            <p style={{ fontSize: "12px", color: "var(--puck-color-red-06)", marginTop: "4px" }}>
+            <p className="text-xs text-destructive mt-1">
               {state.errors.title[0]}
             </p>
           )}
@@ -99,13 +125,7 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
         <div>
           <label
             htmlFor="slug"
-            style={{
-              display: "block",
-              fontSize: "var(--puck-font-size-xxs)",
-              fontWeight: 500,
-              color: "var(--puck-color-black)",
-              marginBottom: "4px"
-            }}
+            className="block text-xs font-medium text-foreground mb-1"
           >
             Slug
           </label>
@@ -117,178 +137,121 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
             placeholder="page-url-slug"
             required
             pattern="[a-z0-9-]+"
-            style={{
-              width: "100%",
-              padding: "8px 12px",
-              borderRadius: "4px",
-              border: !state.success && state.errors && 'slug' in state.errors
-                ? "1px solid var(--puck-color-red-06)"
-                : "1px solid var(--puck-color-grey-08)",
-              fontSize: "var(--puck-font-size-xxs)",
-              background: "var(--puck-color-white)",
-              color: "var(--puck-color-black)"
-            }}
+            className={cn(
+              "w-full px-3 py-2 rounded-md border bg-background text-foreground text-xs",
+              !state.success && state.errors && 'slug' in state.errors
+                ? "border-destructive"
+                : "border-input"
+            )}
           />
           {!state.success && state.errors && 'slug' in state.errors && Array.isArray(state.errors.slug) && state.errors.slug.length > 0 && (
-            <p style={{ fontSize: "12px", color: "var(--puck-color-red-06)", marginTop: "4px" }}>
+            <p className="text-xs text-destructive mt-1">
               {state.errors.slug[0]}
             </p>
           )}
-          <p style={{ fontSize: "11px", color: "var(--puck-color-grey-05)", marginTop: "4px" }}>
+          <p className="text-[11px] text-muted-foreground mt-1">
             Lowercase letters, numbers, and hyphens only
           </p>
         </div>
 
         {/* Draft Status */}
         <div>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              cursor: "pointer",
-              fontSize: "var(--puck-font-size-xxs)",
-              color: "var(--puck-color-black)"
-            }}
-          >
+          <label className="flex items-center gap-2 cursor-pointer text-xs text-foreground">
             <input
               type="checkbox"
               name="isDraft"
               defaultChecked={page.isDraft}
-              style={{
-                width: "16px",
-                height: "16px",
-                cursor: "pointer"
-              }}
+              className={cn(
+                "w-4 h-4 cursor-pointer",
+                !state.success && state.errors && 'isDraft' in state.errors
+                  ? "border-destructive"
+                  : ""
+              )}
             />
             <span>Draft (unpublished)</span>
           </label>
-          <p style={{ fontSize: "11px", color: "var(--puck-color-grey-05)", marginTop: "4px", marginLeft: "24px" }}>
+          {!state.success && state.errors && 'isDraft' in state.errors && Array.isArray(state.errors.isDraft) && state.errors.isDraft.length > 0 && (
+            <p className="text-xs text-destructive mt-1 ml-6">
+              {state.errors.isDraft[0]}
+            </p>
+          )}
+          <p className="text-[11px] text-muted-foreground mt-1 ml-6">
             Draft pages are not visible to visitors
           </p>
         </div>
 
         {/* Show on Menu */}
         <div>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              cursor: "pointer",
-              fontSize: "var(--puck-font-size-xxs)",
-              color: "var(--puck-color-black)"
-            }}
-          >
+          <label className="flex items-center gap-2 cursor-pointer text-xs text-foreground">
             <input
               type="checkbox"
               name="showOnMenu"
               defaultChecked={page.showOnMenu}
-              style={{
-                width: "16px",
-                height: "16px",
-                cursor: "pointer"
-              }}
+              className={cn(
+                "w-4 h-4 cursor-pointer",
+                !state.success && state.errors && 'showOnMenu' in state.errors
+                  ? "border-destructive"
+                  : ""
+              )}
             />
             <span>Show in navigation menu</span>
           </label>
-          <p style={{ fontSize: "11px", color: "var(--puck-color-grey-05)", marginTop: "4px", marginLeft: "24px" }}>
+          {!state.success && state.errors && 'showOnMenu' in state.errors && Array.isArray(state.errors.showOnMenu) && state.errors.showOnMenu.length > 0 && (
+            <p className="text-xs text-destructive mt-1 ml-6">
+              {state.errors.showOnMenu[0]}
+            </p>
+          )}
+          <p className="text-[11px] text-muted-foreground mt-1 ml-6">
             Display this page in the site navigation
           </p>
         </div>
 
         {/* Form-level error */}
         {!state.success && state.errors && '_form' in state.errors && Array.isArray(state.errors._form) && state.errors._form.length > 0 && (
-          <div
-            style={{
-              padding: "12px",
-              borderRadius: "4px",
-              background: "var(--puck-color-red-02)",
-              border: "1px solid var(--puck-color-red-06)"
-            }}
-          >
-            <p style={{ fontSize: "var(--puck-font-size-xxs)", color: "var(--puck-color-red-06)" }}>
-              {state.errors._form[0]}
-            </p>
+          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+            <p className="text-xs text-destructive">{state.errors._form[0]}</p>
           </div>
         )}
 
-        {/* Success message */}
-        {state.success && (
-          <div
-            style={{
-              padding: "12px",
-              borderRadius: "4px",
-              background: "var(--puck-color-green-02)",
-              border: "1px solid var(--puck-color-green-06)"
-            }}
-          >
-            <p style={{ fontSize: "var(--puck-font-size-xxs)", color: "var(--puck-color-green-06)" }}>
-              Page updated successfully!
-            </p>
-          </div>
-        )}
-
-        {/* Save Button */}
-        <Button
-          type="submit"
-          variant="primary"
-          icon={<Save style={{ width: "14px", height: "14px" }} />}
-          fullWidth
-        >
-          Save Changes
-        </Button>
+        {/* Actions */}
+        <div className="flex gap-2 pt-2">
+          <Button type="submit" variant="primary" fullWidth>
+            Save Changes
+          </Button>
+        </div>
       </form>
 
-      {/* Divider */}
-      <div style={{ borderTop: "1px solid var(--puck-color-grey-09)", margin: "8px 0" }} />
-
-      {/* Delete Section */}
-      <div>
-        <h3
-          style={{
-            fontSize: "var(--puck-font-size-xxs)",
-            fontWeight: 600,
-            color: "var(--puck-color-black)",
-            marginBottom: "8px"
-          }}
-        >
-          Danger Zone
-        </h3>
-        <p style={{ fontSize: "11px", color: "var(--puck-color-grey-05)", marginBottom: "12px" }}>
-          Once you delete a page, there is no going back. Please be certain.
-        </p>
-        <form action={deleteFormAction}>
-          <input type="hidden" name="pageId" value={page.id} />
+      {/* Delete Form */}
+      <form action={deleteFormAction} className="mt-4">
+        <input type="hidden" name="pageId" value={page.id} />
+        
+        {!deleteState.success && deleteState.errors && '_form' in deleteState.errors && Array.isArray(deleteState.errors._form) && deleteState.errors._form.length > 0 && (
+          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 mb-2">
+            <p className="text-xs text-destructive">{deleteState.errors._form[0]}</p>
+          </div>
+        )}
+        
+        <div className="text-destructive">
           <Button
             type="submit"
             variant="secondary"
-            icon={<Trash2 style={{ width: "14px", height: "14px" }} />}
             fullWidth
-            onClick={(e) => {
-              if (!confirm("Are you sure you want to delete this page? This action cannot be undone.")) {
-                e.preventDefault();
-              }
-            }}
           >
+            <Trash2 className="w-4 h-4 mr-2" />
             Delete Page
           </Button>
-        </form>
-      </div>
+        </div>
+      </form>
+
+      {/* Divider */}
+      <div className="border-t border-border my-2" />
 
       {/* SEO Metadata Section */}
-      <div style={{ borderTop: "1px solid var(--puck-color-grey-09)", margin: "8px 0", paddingTop: "16px" }}>
-        <h3
-          style={{
-            fontSize: "var(--puck-font-size-xxs)",
-            fontWeight: 600,
-            color: "var(--puck-color-black)",
-            marginBottom: "12px"
-          }}
-        >
+      <div>
+        <h3 className="text-xs font-semibold text-foreground mb-3">
           SEO Metadata
         </h3>
-        <p style={{ fontSize: "11px", color: "var(--puck-color-grey-05)", marginBottom: "16px" }}>
+        <p className="text-[11px] text-muted-foreground mb-4">
           SEO settings are managed per locale in the page editor.
         </p>
         <Button

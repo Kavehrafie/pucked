@@ -1,10 +1,12 @@
-import { db } from "../db";
+import { getDb } from "../db";
 import { encodeBase32, encodeHexLowerCase } from "@oslojs/encoding";
 import { sha256 } from "@oslojs/crypto/sha2";
 import { cookies } from "next/headers";
 import { addMinutes, differenceInMinutes } from "date-fns";
 import { type Session, type User, sessions } from "@/db/schema";
 import { eq } from "drizzle-orm";
+
+const db = getDb();
 
 
 export async function validateSessionToken(token: string): Promise<SessionValidationResult> {

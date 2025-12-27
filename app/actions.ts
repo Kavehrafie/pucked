@@ -10,10 +10,11 @@ import { deleteSessionTokenCookie, getCurrentSession, invalidateSession } from "
 import { getInvitationByCode, isInvitationValid, useInvitation } from "@/lib/invitation";
 import { acceptInvitationForUser } from "@/lib/users";
 import { tryCatch } from "@/lib/utils";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { pages, pageTranslations } from "@/db/schema";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
+import { updatePageFullPath, updateFullPathTree, buildPageTree, updateFullPathsForTree, updateFullPathForSlugChange } from "@/lib/page";
 
 type FormState = {
   errors?: {
@@ -24,7 +25,18 @@ type FormState = {
     _form?: string[]
   }
   success?: boolean
+  updatedPage?: {
+    id: number
+    title: string
+    slug: string
+    isDraft: boolean
+    showOnMenu: boolean
+    sortOrder: number
+    parentId: number | null
+  }
 }
+
+const db = getDb();
 
 export async function logout() {
 	const { session } = await getCurrentSession();
@@ -169,8 +181,12 @@ export async function createPageAction(prevState: FormState, formData: FormData)
 		const [newPage] = await db.insert(pages).values({
 			title: validatedFields.data.title,
 			slug: slug,
+			fullPath: slug, // Initial fullPath
 			isDraft: true,
 		}).returning();
+
+		// Update fullPath based on parent hierarchy (if parent exists)
+		await updatePageFullPath(newPage.id);
 
 		// Create initial translations for both locales
 		await db.insert(pageTranslations).values([
@@ -233,17 +249,37 @@ export async function savePageOrder(prevState: FormState, formData: FormData) {
 
 		console.log("Saving page order:", pagesOrder);
 
-		// Update each page's parent and sort order
+		// First, update all pages' parent and sort order
 		for (const page of pagesOrder) {
-			console.log(`Updating page ${page.id}: parentId=${page.parentId}, sortOrder=${page.sortOrder}`);
 			await db
 				.update(pages)
 				.set({
 					parentId: page.parentId ? Number(page.parentId) : null,
 					sortOrder: page.sortOrder,
 				})
-				.where(eq(pages.id, Number(page.id)));
+				.where(eq(pages.id, Number(page.id)))
+				.returning();
 		}
+
+		// After updating all parent relationships, fetch the complete tree
+		// and update all full paths in a single batch operation
+		const allPages = await db.select().from(pages).orderBy(pages.sortOrder);
+		
+		// Build the tree structure
+		const allTranslations = await db.select().from(pageTranslations);
+		const translationsMap = new Map<number, typeof pageTranslations.$inferSelect[]>();
+		
+		allTranslations.forEach(t => {
+			if (!translationsMap.has(t.pageId)) {
+				translationsMap.set(t.pageId, []);
+			}
+			translationsMap.get(t.pageId)!.push(t);
+		});
+		
+		const tree = buildPageTree(allPages, translationsMap, null);
+		
+		// Update full paths for all pages in one batch
+		await updateFullPathsForTree(tree);
 
 		revalidatePath("/admin");
 
@@ -275,8 +311,120 @@ export async function savePageContent(
 		redirect("/login");
 	}
 
+	const action = formData.get("action") as string | null;
+
+	// Handle delete action
+	if (action === "delete") {
+		try {
+			// Check if page exists
+			const [existingPage] = await db
+				.select()
+				.from(pages)
+				.where(eq(pages.id, pageId))
+				.limit(1);
+
+			if (!existingPage) {
+				return {
+					errors: {
+						_form: ["Page not found"],
+					},
+				};
+			}
+
+			// Delete the translation
+			await db
+				.delete(pageTranslations)
+				.where(
+					and(
+						eq(pageTranslations.pageId, pageId),
+						eq(pageTranslations.locale, locale)
+					)
+				);
+
+			// Revalidate paths
+			revalidatePath("/admin");
+			revalidatePath(`/${locale}/${existingPage.slug}`);
+
+			return { success: true, deleted: true };
+		} catch (error) {
+			console.error("Error deleting page translation:", error);
+			return {
+				errors: {
+					_form: ["Failed to delete page translation. Please try again."],
+				},
+			};
+		}
+	}
+
+	// Handle toggle-publish action
+	if (action === "toggle-publish") {
+		try {
+			// Get current translation to toggle published status
+			const [existingTranslation] = await db
+				.select()
+				.from(pageTranslations)
+				.where(
+					and(
+						eq(pageTranslations.pageId, pageId),
+						eq(pageTranslations.locale, locale)
+					)
+				)
+				.limit(1);
+
+			if (!existingTranslation) {
+				return {
+					errors: {
+						_form: ["Translation not found. Please save the page first."],
+					},
+				};
+			}
+
+			const newPublishedStatus = !existingTranslation.published;
+
+			// Parse isDraft status from form data
+			const rawIsDraft = formData.get("isDraft");
+			let isDraft = false;
+			if (typeof rawIsDraft === "string") {
+				isDraft = rawIsDraft === "true";
+			}
+
+			// Update page isDraft status
+			await db
+				.update(pages)
+				.set({ isDraft })
+				.where(eq(pages.id, pageId));
+
+			// Update published status
+			await db
+				.update(pageTranslations)
+				.set({ published: newPublishedStatus })
+				.where(
+					and(
+						eq(pageTranslations.pageId, pageId),
+						eq(pageTranslations.locale, locale)
+					)
+				);
+
+			// Revalidate paths
+			revalidatePath("/admin");
+			revalidatePath(`/${locale}`);
+
+			return { success: true, published: newPublishedStatus };
+		} catch (error) {
+			console.error("Error toggling publish status:", error);
+			return {
+				errors: {
+					_form: ["Failed to update publish status. Please try again."],
+				},
+			};
+		}
+	}
+
+	// Handle default save action
 	const rawTitle = formData.get("title");
 	const rawContent = formData.get("content");
+	const rawPublished = formData.get("published");
+	const rawIsDraft = formData.get("isDraft");
 
 	// Parse content if it's a string
 	let content = rawContent;
@@ -306,6 +454,18 @@ export async function savePageContent(
 
 	const { title, content: validatedContent } = validatedFields.data;
 
+	// Parse published status
+	let published = true;
+	if (typeof rawPublished === "string") {
+		published = rawPublished === "true";
+	}
+
+	// Parse isDraft status
+	let isDraft = false;
+	if (typeof rawIsDraft === "string") {
+		isDraft = rawIsDraft === "true";
+	}
+
 	try {
 		// Check if page exists
 		const [existingPage] = await db
@@ -322,6 +482,12 @@ export async function savePageContent(
 			};
 		}
 
+		// Update page isDraft status
+		await db
+			.update(pages)
+			.set({ isDraft })
+			.where(eq(pages.id, pageId));
+
 		// Update or insert page translation
 		await db
 			.insert(pageTranslations)
@@ -330,14 +496,14 @@ export async function savePageContent(
 				locale,
 				title,
 				content: validatedContent || { root: { props: {}, children: [] } },
-				published: true,
+				published,
 			})
 			.onConflictDoUpdate({
 				target: [pageTranslations.pageId, pageTranslations.locale],
 				set: {
 					title,
 					content: validatedContent || { root: { props: {}, children: [] } },
-					published: true,
+					published,
 				},
 			});
 
@@ -345,7 +511,7 @@ export async function savePageContent(
 		revalidatePath("/admin");
 		revalidatePath(`/${locale}/${existingPage.slug}`);
 
-		return { success: true };
+		return { success: true, published };
 	} catch (error) {
 		console.error("Error saving page content:", error);
 		return {
@@ -360,8 +526,8 @@ const updatePageSchema = z.object({
 	pageId: z.string().transform((val) => parseInt(val, 10)),
 	title: z.string().min(1).max(200),
 	slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
-	isDraft: z.string().optional().transform((val) => val === "on"),
-	showOnMenu: z.string().optional().transform((val) => val === "on"),
+	isDraft: z.union([z.string(), z.null()]).optional().transform((val) => val === "on"),
+	showOnMenu: z.union([z.string(), z.null()]).optional().transform((val) => val === "on"),
 });
 
 export async function updatePageAction(prevState: FormState, formData: FormData) {
@@ -395,6 +561,7 @@ export async function updatePageAction(prevState: FormState, formData: FormData)
 			.limit(1);
 
 		if (!existingPage) {
+			console.log(`[updatePageAction] Page ${pageId} not found`);
 			return {
 				errors: {
 					_form: ["Page not found"],
@@ -403,38 +570,71 @@ export async function updatePageAction(prevState: FormState, formData: FormData)
 			};
 		}
 
-		// Check if slug is already taken by another page
-		const [slugConflict] = await db
+	// Check if slug is already taken by another page
+	const [slugConflict] = await db
+		.select()
+		.from(pages)
+		.where(eq(pages.slug, slug))
+		.limit(1);
+
+	if (slugConflict && slugConflict.id !== pageId) {
+		return {
+			errors: {
+				slug: ["This slug is already in use by another page"],
+			},
+			success: false,
+		};
+	}
+
+	// Update page
+	const [updatedPage] = await db
+		.update(pages)
+		.set({
+			title,
+			slug,
+			isDraft,
+			showOnMenu,
+		})
+		.where(eq(pages.id, pageId))
+		.returning();
+
+	// If slug changed, update fullPath for this page and all descendants
+	if (slug !== existingPage.slug) {
+		await updateFullPathForSlugChange(pageId, slug);
+
+		// Fetch the updated page with new fullPath
+		const [pageWithFullPath] = await db
 			.select()
 			.from(pages)
-			.where(eq(pages.slug, slug))
+			.where(eq(pages.id, pageId))
 			.limit(1);
 
-		if (slugConflict && slugConflict.id !== pageId) {
-			return {
-				errors: {
-					slug: ["This slug is already in use by another page"],
-				},
-				success: false,
-			};
-		}
-
-		// Update page
-		await db
-			.update(pages)
-			.set({
-				title,
-				slug,
-				isDraft,
-				showOnMenu,
-			})
-			.where(eq(pages.id, pageId));
+		console.log(`[updatePageAction] Page with updated fullPath:`, {
+			id: pageWithFullPath?.id,
+			fullPath: pageWithFullPath?.fullPath,
+		});
 
 		// Revalidate paths
 		revalidatePath("/admin");
-		revalidatePath(`/${existingPage.slug}`);
+		revalidatePath(`/${existingPage.fullPath}`);
+		revalidatePath(`/${pageWithFullPath?.fullPath || slug}`);
 
-		return { success: true };
+		return {
+			success: true,
+			updatedPage: pageWithFullPath || updatedPage,
+		};
+	}
+
+	console.log(`[updatePageAction] Slug unchanged, skipping fullPath update`);
+		
+		// Revalidate paths
+		revalidatePath("/admin");
+		revalidatePath(`/${existingPage.fullPath}`);
+
+		return { 
+			success: true,
+			updatedPage: updatedPage || undefined,
+		};
 	} catch (error) {
 		console.error("Error updating page:", error);
 		return {

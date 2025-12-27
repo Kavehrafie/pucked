@@ -27,6 +27,7 @@ import type { TreeItem, FlattenedItem } from "@/components/types";
 import { Badge } from "../ui/badge";
 import type { PageTranslationStatus } from "@/lib/page";
 import { usePageSelection } from "@/components/admin/page-selection-context";
+import { usePageTree } from "@/contexts/page-tree-context";
 import { Page } from "@/db/schema";
 
 export interface PageTreeNode {
@@ -222,14 +223,16 @@ export function SortableTree({
   removable = false,
   indentationWidth = 24,
 }: SortableTreeProps) {
-  const { setSelectedPage } = usePageSelection();
+  const { setSelectedPage, selectedPage } = usePageSelection();
+  const { pagesTree, setPagesTree } = usePageTree();
   const [mounted, setMounted] = useState(false);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
   const [isInvalidNesting, setIsInvalidNesting] = useState(false);
 
-  const [itemsState, setItemsState] = useState<PageTreeNode[]>(items);
+  // Use pagesTree from context instead of local state
+  const itemsState = pagesTree.length > 0 ? pagesTree : items;
 
   useEffect(() => {
     setMounted(true);
@@ -370,7 +373,7 @@ export function SortableTree({
       const sortedItems = arrayMove(flattenedItemsWithProjection, activeIndex, overIndex);
 
       const newItems = buildTreeFromFlattened(sortedItems, titleMap, slugMap, translationsMap, isDraftMap, showOnMenuMap);
-      setItemsState(newItems);
+      setPagesTree(newItems);
       onChange?.(newItems);
     }
 
@@ -389,7 +392,7 @@ export function SortableTree({
         return node;
       });
     };
-    setItemsState(toggleCollapse(itemsState));
+    setPagesTree(toggleCollapse(itemsState));
   };
 
   const handleRemove = (id: UniqueIdentifier) => {
@@ -401,7 +404,7 @@ export function SortableTree({
           children: node.children ? removeNode(node.children) : undefined,
         }));
     };
-    setItemsState(removeNode(itemsState));
+    setPagesTree(removeNode(itemsState));
   };
 
   const activeItem = activeId
@@ -460,6 +463,8 @@ export function SortableTree({
                   indicator={overId === id && activeId !== id}
                   translations={node.translations}
                   pageSlug={node.slug}
+                  pageId={node.id}
+                  isSelected={selectedPage?.id === parseInt(node.id, 10)}
                   onCollapse={
                     collapsible && hasChildren
                       ? () => handleCollapse(id)
@@ -468,7 +473,7 @@ export function SortableTree({
                   onRemove={removable ? () => handleRemove(id) : undefined}
                   onClick={() => {
                     // Create a Page object from the node data
-                    const page: Page = {
+                    const page: Page & { translations?: typeof node.translations } = {
                       id: parseInt(node.id, 10),
                       title: node.title,
                       slug: node.slug,
@@ -476,8 +481,9 @@ export function SortableTree({
                       showOnMenu: node.showOnMenu,
                       sortOrder: 0,
                       parentId: null,
+                      translations: node.translations,
                     };
-                    setSelectedPage(page);
+                    setSelectedPage(page as any);
                   }}
                 />
               );

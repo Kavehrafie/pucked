@@ -32,7 +32,7 @@ export function AdminSidebarRight({ children, title = "Properties" }: AdminSideb
           overflow: sidebarRightVisible ? "auto" : "hidden"
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
           {/* Header */}
           {title && (
             <div
@@ -44,7 +44,8 @@ export function AdminSidebarRight({ children, title = "Properties" }: AdminSideb
                 borderBottom: "1px solid var(--puck-color-grey-09)",
                 fontSize: "var(--puck-font-size-s)",
                 fontWeight: 600,
-                color: "var(--puck-color-black)"
+                color: "var(--puck-color-black)",
+                flexShrink: 0
               }}
             >
               <span>{title}</span>
@@ -52,7 +53,7 @@ export function AdminSidebarRight({ children, title = "Properties" }: AdminSideb
           )}
 
           {/* Content */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "var(--puck-space-px)" }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: "16px", minHeight: 0 }}>
             {children}
           </div>
         </div>

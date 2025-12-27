@@ -99,15 +99,6 @@ export function AdminHeader() {
         </Button>
 
         <Button
-          href="/"
-          variant="secondary"
-          icon={<Home style={{ width: "14px", height: "14px" }} />}
-          newTab
-        >
-          View site
-        </Button>
-
-        <Button
           variant="secondary"
           icon={<LogOut style={{ width: "14px", height: "14px" }} />}
           onClick={logout}

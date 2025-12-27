@@ -1,7 +1,9 @@
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { invitations, users } from "@/db/schema";
 import { eq, and, gt, isNull } from "drizzle-orm";
 import { randomBytes } from "crypto";
+
+const db = getDb();
 
 export function generateInvitationCode(): string {
   const bytes = randomBytes(6);

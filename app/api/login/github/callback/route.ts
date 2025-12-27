@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import type { OAuth2Tokens } from "arctic";
 import { createUserFromGitHubId, getUserFromGitHubId } from "@/lib/users";
 import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { getDb } from "@/db";
 
 export async function GET(request: Request): Promise<Response> {
 	const url = new URL(request.url);
@@ -38,6 +38,8 @@ export async function GET(request: Request): Promise<Response> {
 	}
 
 	// Clear OAuth state cookies FIRST before setting session
+
+  const db = getDb();
 	cookieStore.delete("github_oauth_state");
 	if (storedRedirect) {
 		cookieStore.delete("github_oauth_redirect");
@@ -73,7 +75,7 @@ export async function GET(request: Request): Promise<Response> {
 	}
 
 	// Determine where to redirect after login
-	let redirectPath = "/";
+	let redirectPath = "/admin";
 
 	// Check if user has accepted invitation
 	if (user.invitationAcceptedAt === null) {

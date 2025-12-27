@@ -1,6 +1,6 @@
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { generateInvitationCode, createInvitation } from "@/lib/invitation";
+import { db } from "../db";
+import { users } from "../db/schema";
+import { generateInvitationCode, createInvitation } from "../lib/invitation";
 import { eq } from "drizzle-orm";
 
 async function main() {

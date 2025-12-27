@@ -1,6 +1,8 @@
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { User, users } from "@/db/schema";
 import { eq, Query } from "drizzle-orm";
+
+const db = getDb();
 
 export const getUserFromGitHubId = (githubUserId: number) => {
     return db.query.users.findFirst({

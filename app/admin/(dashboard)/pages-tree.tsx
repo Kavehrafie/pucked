@@ -3,10 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { SortableTree, PageTreeNode } from "@/components/admin/sortable-tree"
 import { SavePageOrderButton } from "./page-order-save"
-
-interface PagesTreeProps {
-  initialItems: PageTreeNode[]
-}
+import { usePageTree } from "@/contexts/page-tree-context"
+import { useNotifications } from "@/contexts/notification-context"
 
 interface FlatPageOrder {
   id: string
@@ -39,14 +37,15 @@ function flattenTreeWithOrder(
   return result
 }
 
-export function PagesTree({ initialItems }: PagesTreeProps) {
-  const [items, setItems] = useState<PageTreeNode[]>(initialItems)
+export function PagesTree() {
+  const { pagesTree: items, setPagesTree, isRefreshing } = usePageTree()
+  const { showSuccess, showError } = useNotifications()
   const [isTainted, setIsTainted] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
-  const lastSavedItems = useRef<PageTreeNode[]>(initialItems)
+  const lastSavedItems = useRef<PageTreeNode[]>(items)
 
   const handleChange = (newItems: PageTreeNode[]) => {
-    setItems(newItems)
+    setPagesTree(newItems)
     setIsTainted(true)
     setSaveSuccess(false)
   }
@@ -64,12 +63,21 @@ export function PagesTree({ initialItems }: PagesTreeProps) {
     lastSavedItems.current = items
     setIsTainted(false)
     setSaveSuccess(true)
+    showSuccess("Page order saved successfully!")
     // Clear success message after 3 seconds
     setTimeout(() => setSaveSuccess(false), 3000)
   }
 
   // Get flattened order data for saving
   const orderData = flattenTreeWithOrder(items)
+
+  if (isRefreshing) {
+    return (
+      <div className="flex justify-center items-center p-12">
+        <div className="text-muted-foreground">Loading pages...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex justify-center">
@@ -84,17 +92,9 @@ export function PagesTree({ initialItems }: PagesTreeProps) {
 
         {/* Tree container with subtle border and shadow */}
         <div 
-          className="relative rounded-lg border bg-card p-6 shadow-sm"
           data-pages-order={JSON.stringify(orderData)}
         >
           <SortableTree items={items} onChange={handleChange} />
-          
-          {/* Success message */}
-          {saveSuccess && (
-            <div className="mt-4 p-3 rounded-md bg-green-500/10 border border-green-500/20">
-              <p className="text-sm text-green-600 dark:text-green-400">Page order saved successfully!</p>
-            </div>
-          )}
           
           {/* Save button */}
           {isTainted && (

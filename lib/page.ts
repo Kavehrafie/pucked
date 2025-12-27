@@ -1,7 +1,7 @@
 
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { pages, pageTranslations } from "@/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import type { Page, PageTranslation } from "@/db/schema";
 
 export interface PageTranslationStatus {
@@ -23,7 +23,8 @@ export interface PageTreeNode {
 /**
  * Build a hierarchical tree structure from flat pages array
  */
-function buildPageTree(
+const db = getDb();
+export function buildPageTree(
   pages: Page[],
   translationsMap: Map<number, PageTranslation[]>,
   parentId: number | null = null
@@ -99,6 +100,30 @@ export async function getPageBySlug(slug: string) {
 }
 
 /**
+ * Get a page by its full path (e.g., "about/team" or "home")
+ */
+export async function getPageByFullPath(fullPath: string) {
+  const [page] = await db
+    .select()
+    .from(pages)
+    .where(eq(pages.fullPath, fullPath))
+    .limit(1);
+
+  if (!page) return null;
+
+  // Get translations for this page
+  const translations = await db
+    .select()
+    .from(pageTranslations)
+    .where(eq(pageTranslations.pageId, page.id));
+
+  return {
+    ...page,
+    translations,
+  };
+}
+
+/**
  * Get a page by its ID with translations
  */
 export async function getPageById(id: number) {
@@ -142,6 +167,20 @@ export async function updatePage(
     .where(eq(pages.id, id))
     .returning();
 
+  // If slug or parent changed, update fullPath for this page and all descendants
+  if (data.slug !== undefined || data.parentId !== undefined) {
+    await updateFullPathTree(id);
+    
+    // Return the page with updated fullPath
+    const [pageWithFullPath] = await db
+      .select()
+      .from(pages)
+      .where(eq(pages.id, id))
+      .limit(1);
+    
+    return pageWithFullPath;
+  }
+
   return updated;
 }
 
@@ -161,6 +200,7 @@ export async function createPage(data: {
     .values({
       title: data.title,
       slug: data.slug,
+      fullPath: data.slug, // Initial fullPath is just the slug
       isDraft: data.isDraft ?? true,
       showOnMenu: data.showOnMenu ?? true,
       parentId: data.parentId ?? null,
@@ -168,7 +208,17 @@ export async function createPage(data: {
     })
     .returning();
 
-  return newPage;
+  // Update fullPath based on parent hierarchy
+  await updatePageFullPath(newPage.id);
+
+  // Return the page with updated fullPath
+  const [pageWithFullPath] = await db
+    .select()
+    .from(pages)
+    .where(eq(pages.id, newPage.id))
+    .limit(1);
+
+  return pageWithFullPath;
 }
 
 /**
@@ -247,5 +297,212 @@ export async function getPageBySlugAndLocale(slug: string, locale: string) {
       published: false,
     },
   };
+}
+
+/**
+ * Generate the full path for a page by traversing up the parent chain
+ * This is optimized to work with in-memory tree data
+ */
+async function generateFullPath(pageId: number): Promise<string> {
+  const pathSegments: string[] = [];
+  let currentId: number | null = pageId;
+
+  // Traverse up the parent chain
+  while (currentId !== null) {
+    const [page] = await db
+      .select()
+      .from(pages)
+      .where(eq(pages.id, currentId))
+      .limit(1);
+
+    if (!page) break;
+
+    // Add the slug to the beginning of the path
+    pathSegments.unshift(page.slug);
+    currentId = page.parentId;
+  }
+
+  return pathSegments.join('/');
+}
+
+/**
+ * Update the full path for a single page
+ */
+export async function updatePageFullPath(pageId: number) {
+  const fullPath = await generateFullPath(pageId);
+  
+  await db
+    .update(pages)
+    .set({ fullPath })
+    .where(eq(pages.id, pageId));
+}
+
+/**
+ * Update full paths for a page and all its descendants
+ * Call this when a page's slug or parent changes
+ */
+export async function updateFullPathTree(pageId: number) {
+  // Update the page itself
+  await updatePageFullPath(pageId);
+
+  // Recursively update all descendants
+  const [page] = await db
+    .select()
+    .from(pages)
+    .where(eq(pages.id, pageId))
+    .limit(1);
+
+  if (!page) return;
+
+  // Get all children
+  const children = await db
+    .select()
+    .from(pages)
+    .where(eq(pages.parentId, pageId));
+
+  // Recursively update each child's tree
+  for (const child of children) {
+    await updateFullPathTree(child.id);
+  }
+}
+
+/**
+ * Build a map of page IDs to their full paths from a tree structure
+ * This is much more efficient than querying the database for each page
+ */
+export function buildFullPathMap(tree: PageTreeNode[], parentPath = ""): Map<string, string> {
+  const pathMap = new Map<string, string>();
+
+  function traverse(nodes: PageTreeNode[], currentPath: string) {
+    for (const node of nodes) {
+      const nodePath = currentPath ? `${currentPath}/${node.slug}` : node.slug;
+      pathMap.set(node.id, nodePath);
+
+      if (node.children && node.children.length > 0) {
+        traverse(node.children, nodePath);
+      }
+    }
+  }
+
+  traverse(tree, parentPath);
+  return pathMap;
+}
+
+/**
+ * Get the full path for a page from the tree structure
+ * Use this when you have the tree in memory (client-side or server-side with tree loaded)
+ */
+export function getFullPathFromTree(tree: PageTreeNode[], pageId: string): string | null {
+  function findPath(nodes: PageTreeNode[], targetId: string, currentPath = ""): string | null {
+    for (const node of nodes) {
+      const nodePath = currentPath ? `${currentPath}/${node.slug}` : node.slug;
+      
+      if (node.id === targetId) {
+        return nodePath;
+      }
+      
+      if (node.children && node.children.length > 0) {
+        const childPath = findPath(node.children, targetId, nodePath);
+        if (childPath) return childPath;
+      }
+    }
+    return null;
+  }
+
+  return findPath(tree, pageId);
+}
+
+/**
+ * Update the full path for a page when only its slug changes
+ * This is more efficient than rebuilding the entire tree
+ */
+export async function updateFullPathForSlugChange(pageId: number, newSlug: string) {
+  const [page] = await db
+    .select()
+    .from(pages)
+    .where(eq(pages.id, pageId))
+    .limit(1);
+
+  if (!page) {
+    return;
+  }
+
+  // Get the parent's full path (if exists)
+  let parentFullPath = "";
+  if (page.parentId) {
+    const [parent] = await db
+      .select()
+      .from(pages)
+      .where(eq(pages.id, page.parentId))
+      .limit(1);
+    
+    if (parent) {
+      parentFullPath = parent.fullPath ? `${parent.fullPath}/` : "";
+    }
+  }
+
+  // Update the page's fullPath
+  const newFullPath = `${parentFullPath}${newSlug}`;
+  
+  await db
+    .update(pages)
+    .set({ fullPath: newFullPath })
+    .where(eq(pages.id, pageId));
+
+  // Update all descendants by replacing the old path prefix with new path
+  const oldFullPath = page.fullPath;
+  
+  const descendants = await db
+    .select()
+    .from(pages)
+    .where(sql`full_path LIKE ${`${oldFullPath}/%`}`);
+
+  for (const descendant of descendants) {
+    const newDescendantPath = descendant.fullPath.replace(
+      `${oldFullPath}/`,
+      `${newFullPath}/`
+    );
+    
+    await db
+      .update(pages)
+      .set({ fullPath: newDescendantPath })
+      .where(eq(pages.id, descendant.id));
+  }
+}
+
+/**
+ * Update full paths for all pages in a tree
+ * Call this after reordering pages to update the database in a single batch
+ */
+export async function updateFullPathsForTree(tree: PageTreeNode[]) {
+  const pathMap = buildFullPathMap(tree);
+
+  // Update pages sequentially to avoid SQLite locking issues
+  let successCount = 0;
+  let failureCount = 0;
+  
+  for (const [pageId, fullPath] of pathMap.entries()) {
+    try {
+      const numericId = parseInt(pageId, 10);
+      
+      const result = await db
+        .update(pages)
+        .set({ fullPath })
+        .where(eq(pages.id, numericId))
+        .returning();
+      
+      if (result.length > 0) {
+        successCount++;
+      } else {
+        failureCount++;
+      }
+    } catch (error) {
+      failureCount++;
+    }
+  }
+  
+  if (failureCount > 0) {
+    throw new Error(`Failed to update ${failureCount} page(s) out of ${pathMap.size}`);
+  }
 }
 

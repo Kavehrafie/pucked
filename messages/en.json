@@ -2,5 +2,15 @@
   "HomePage": {
     "title": "Home Page",
     "WelcomeMessage": "Welcome to the Home Page"
+  },
+  "Navigation": {
+    "menu": "Menu",
+    "closeMenu": "Close Menu",
+    "languageSwitcher": "Language"
+  },
+  "Footer": {
+    "copyright": "© 2025 Pucked. All rights reserved.",
+    "quickLinks": "Quick Links",
+    "socialLinks": "Follow Us"
   }
 }
