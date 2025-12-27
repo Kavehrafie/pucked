@@ -2,6 +2,8 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { LocaleLayoutClient } from "@/components/locale-layout-client";
+import { getFlatMenuList } from "@/lib/page-tree";
+import { getSiteSettings } from "@/lib/site-settings";
 
 type Props = {
   children: React.ReactNode;
@@ -17,11 +19,25 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   const dir = locale === "fa" ? "rtl" : "ltr";
 
+  // Fetch menu data server-side
+  const [menuItems, settings] = await Promise.all([
+    getFlatMenuList(locale),
+    getSiteSettings(),
+  ]);
+
   return (
     <NextIntlClientProvider locale={locale}>
       {/* Wrapper div with lang and dir for proper RTL support */}
       <div lang={locale} dir={dir} className="min-h-screen">
-        <LocaleLayoutClient locale={locale}>{children}</LocaleLayoutClient>
+        <LocaleLayoutClient 
+          locale={locale}
+          menuItems={menuItems}
+          siteName={settings?.siteName || { en: "Pucked", fa: "پاکد" }}
+          logoUrl={settings?.logoUrl || ""}
+          settings={settings}
+        >
+          {children}
+        </LocaleLayoutClient>
       </div>
     </NextIntlClientProvider>
   );

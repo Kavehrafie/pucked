@@ -389,6 +389,99 @@ export function PublicPage() {
 npx shadcn@latest add [component-name]
 ```
 
+### Puck Page Builder Architecture
+
+**CRITICAL**: Understanding the dual-layout architecture is essential for working with Puck pages.
+
+**Architecture Overview**:
+- **Guest Pages** (`/app/[locale]/[...path]/*`): Rendered content with full layout
+- **Editor Preview** (`/admin/pages/[locale]/[slug]/edit`): Live preview during editing
+- **Two Separate Layout Systems**: Guest pages use `GuestNavbar`/`GuestFooter`, editor uses `PreviewNavbar`/`PreviewFooter`
+
+**Why Two Layouts?**
+The guest navbar and footer components use `next-intl` hooks (`useLocale`, `useTranslations`) which require the `NextIntlClientProvider` context. The Puck editor runs at `/admin/pages/*` which is outside the `[locale]` route structure and doesn't have this provider. Therefore, we use simplified preview components in the editor.
+
+**Key Files**:
+- `puck.config.tsx` - Puck configuration with `root.render` function
+- `components/puck-render.tsx` - Client component wrapper for Puck's Render component
+- `components/locale-layout-client.tsx` - Guest page layout with navbar/footer
+- `components/guest-navbar.tsx` - Public navbar with full i18n support
+- `components/guest-footer.tsx` - Public footer with full i18n support
+- `app/[locale]/[...path]/page.tsx` - Server Component that renders Puck pages
+
+**Puck Config root.render Pattern**:
+```tsx
+// In puck.config.tsx
+root: {
+  render: ({ children }) => {
+    const dir = locale === "fa" ? "rtl" : "ltr";
+    
+    if (isPreview) {
+      // Editor preview mode - show full layout with preview components
+      return (
+        <div dir={dir} className="min-h-screen flex flex-col">
+          <PreviewNavbar locale={locale} />
+          <main className="flex-1 mx-auto prose md:prose-lg md:max-w-xl lg:max-w-2xl px-4 py-8 w-full">
+            {children}
+          </main>
+          <PreviewFooter locale={locale} />
+        </div>
+      );
+    }
+    
+    // Render mode - just return children, no wrapper
+    // Layout is handled by Next.js layout (locale-layout-client.tsx)
+    return <>{children}</>;
+  }
+}
+```
+
+**Critical Rules**:
+1. **Render Mode**: Must return just `<>{children}</>` - NO wrapper div, NO layout
+2. **Preview Mode**: Full layout with navbar, footer, prose styling
+3. **Prose Classes Must Match**: Both layouts use identical prose classes for WYSIWYG
+4. **Never Pass Functions to Client Components**: Use `components/puck-render.tsx` wrapper
+
+**Prose Typography Classes** (must match exactly):
+```tsx
+// Used in both guest layout and editor preview
+"prose md:prose-lg md:max-w-xl lg:max-w-2xl px-4 py-8 w-full"
+```
+
+**When Editing Puck Config**:
+- ✅ Modify `PreviewNavbar`/`PreviewFooter` for editor preview changes
+- ✅ Modify prose classes in BOTH places if changing typography
+- ✅ Keep render mode minimal: `return <>{children}</>;`
+- ❌ NEVER add layout wrapper in render mode
+- ❌ NEVER use `next-intl` hooks in preview components
+- ❌ NEVER pass functions from Server to Client Components
+
+**Guest Page Rendering Flow**:
+1. Server Component (`app/[locale]/[...path]/page.tsx`) fetches page data
+2. Dynamic import loads `components/puck-render.tsx` (client component)
+3. Client component calls `getConfig(locale)` and renders with `@measured/puck`'s Render component
+4. Next.js layout (`locale-layout-client.tsx`) wraps with navbar/footer
+5. Puck config's `root.render` returns just children (no wrapper)
+
+**Editor Preview Flow**:
+1. Editor page (`/admin/pages/[locale]/[slug]/edit`) loads Puck editor
+2. Puck config called with `isPreview=true`
+3. `root.render` returns full layout with PreviewNavbar/PreviewFooter
+4. No Next.js layout wrapper in editor context
+
+**Visual Unification**:
+While the code is not truly unified (different components), the visual appearance is unified through:
+- Identical prose typography classes
+- Matching layout structure (navbar, main, footer)
+- Same spacing and styling tokens
+- Consistent RTL support
+
+**Future Unification Options**:
+If true code unification is needed, consider:
+1. Add `NextIntlClientProvider` to admin routes (complex)
+2. Create context-free versions of GuestNavbar/Footer (moderate)
+3. Accept current dual-layout with visual unification (recommended)
+
 ### Common UI Patterns (Both Systems)
 
 **Spacing**:
@@ -455,6 +548,9 @@ npx shadcn@latest add [component-name]
 9. **Inline Styles**: Never use inline styles - always use Tailwind classes
 10. **Missing Dark Mode**: Always add `dark:` variants for colors
 11. **Wrong Component Library**: Using Shadcn in admin or Puck in public areas - stick to the dual design system
+12. **Puck Layout Confusion**: The editor preview and guest pages use DIFFERENT layout components (Preview vs Guest). This is intentional - don't try to unify them without understanding the next-intl context limitation
+13. **Modifying Puck root.render**: In render mode, always return just `<>{children}</>`. Never add layout wrappers - Next.js layout handles that
+14. **Prose Class Mismatch**: If you change prose classes in guest layout, you MUST also update them in puck.config.tsx preview mode, or the editor won't match the published page
 
 ## Key Files Reference
 
@@ -474,6 +570,14 @@ npx shadcn@latest add [component-name]
 - `proxy.ts` - i18n middleware (excludes admin/api)
 - `i18n/routing.ts` - Locale configuration
 - `i18n/request.ts` - Message loading
+
+**Puck Page Builder**:
+- `puck.config.tsx` - Puck configuration with root.render function (dual-layout system)
+- `components/puck-render.tsx` - Client component wrapper for Puck's Render component
+- `components/locale-layout-client.tsx` - Guest page layout with navbar/footer
+- `components/guest-navbar.tsx` - Public navbar with full i18n support
+- `components/guest-footer.tsx` - Public footer with full i18n support
+- `app/[locale]/[...path]/page.tsx` - Server Component that renders Puck pages
 
 **Actions**:
 - `app/actions.ts` - Server actions (submitInvitation, loginWithGitHub, logout, createPageAction)

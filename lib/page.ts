@@ -124,6 +124,113 @@ export async function getPageByFullPath(fullPath: string) {
 }
 
 /**
+ * Check if a page is the landing page (singleton "home" page)
+ */
+export function isLandingPage(page: Pick<Page, "slug">): boolean {
+  return page.slug === "home";
+}
+
+/**
+ * Get all published translations for a page
+ */
+export async function getPublishedTranslationsForPage(pageId: number) {
+  const translations = await db
+    .select()
+    .from(pageTranslations)
+    .where(eq(pageTranslations.pageId, pageId));
+
+  return translations.filter(t => t.published);
+}
+
+/**
+ * Find the best fallback translation for a page
+ * Priority: English -> first published translation
+ */
+export async function findFallbackTranslation(pageId: number, currentLocale: string) {
+  const translations = await db
+    .select()
+    .from(pageTranslations)
+    .where(eq(pageTranslations.pageId, pageId));
+
+  // Filter to only published translations
+  const publishedTranslations = translations.filter(t => t.published);
+
+  if (publishedTranslations.length === 0) {
+    return null;
+  }
+
+  // First, try to find English translation
+  const englishTranslation = publishedTranslations.find(t => t.locale === 'en');
+  if (englishTranslation) {
+    return englishTranslation;
+  }
+
+  // Otherwise, return the first published translation
+  return publishedTranslations[0];
+}
+
+/**
+ * Get page content with fallback logic
+ * Returns null if no published translation exists
+ */
+export async function getPageContentWithFallback(pageId: number, locale: string) {
+  const [translation] = await db
+    .select()
+    .from(pageTranslations)
+    .where(
+      and(
+        eq(pageTranslations.pageId, pageId),
+        eq(pageTranslations.locale, locale)
+      )
+    )
+    .limit(1);
+
+  // If translation exists and is published, return it
+  if (translation && translation.published) {
+    return {
+      translation,
+      fallbackLocale: null,
+    };
+  }
+
+  // If translation doesn't exist or is not published, find fallback
+  const fallback = await findFallbackTranslation(pageId, locale);
+  
+  if (!fallback) {
+    // No published translation exists
+    return null;
+  }
+
+  return {
+    translation: fallback,
+    fallbackLocale: fallback.locale,
+  };
+}
+
+/**
+ * Get or create the landing page (singleton "home" page)
+ * The landing page is treated as the root page for each locale (/en, /fa, etc.)
+ */
+export async function getOrCreateLandingPage() {
+  // First, try to find an existing page with slug "home"
+  let page = await getPageBySlug("home");
+
+  if (!page) {
+    // Create the landing page if it doesn't exist
+    page = await createPage({
+      title: "Home",
+      slug: "home",
+      isDraft: false,
+      showOnMenu: true,
+      parentId: null,
+      sortOrder: 0,
+    });
+  }
+
+  return page;
+}
+
+/**
  * Get a page by its ID with translations
  */
 export async function getPageById(id: number) {

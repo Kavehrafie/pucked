@@ -5,6 +5,7 @@ import { GridBlock } from "./components/admin/grid-block";
 import { LinkBlock } from "./components/admin/link-block";
 import { TipTapBlock } from "./components/admin/tip-tap-block";
 import { SpacerBlock } from "./components/admin/spacer-block";
+import { ImageBlock } from "./components/admin/image-block";
 
 // Simple preview navbar (no intl context dependency)
 function PreviewNavbar({ locale }: { locale: string }) {
@@ -119,7 +120,7 @@ export function getConfig(locale: string = "en", isPreview: boolean = false): Co
     },
     content: {
       title: "Content",
-      components: ["TipTapBlock"],
+      components: ["TipTapBlock", "ImageBlock"],
     },
     links: {
       title: "Links",
@@ -132,6 +133,7 @@ export function getConfig(locale: string = "en", isPreview: boolean = false): Co
     LinkBlock,
     TipTapBlock,
     SpacerBlock,
+    ImageBlock,
   },
   root: {
     fields: {
@@ -169,24 +171,22 @@ export function getConfig(locale: string = "en", isPreview: boolean = false): Co
     render: ({ children }) => {
       const dir = locale === "fa" ? "rtl" : "ltr";
 
-      // Only show navbar/footer in preview mode (admin editor)
-      // Guest pages already have them from the layout
+      // In preview mode (admin editor), show full layout with navbar/footer
       if (isPreview) {
         return (
           <div dir={dir} className="min-h-screen flex flex-col">
             <PreviewNavbar locale={locale} />
-            <main className="flex-1 guest-template">{children}</main>
+            <main className="flex-1 mx-auto prose md:prose-lg md:max-w-xl lg:max-w-2xl px-4 py-8 w-full">
+              {children}
+            </main>
             <PreviewFooter locale={locale} />
           </div>
         );
       }
 
-      // For guest pages, just render the content with dir
-      return (
-        <div dir={dir} className="min-h-screen">
-          {children}
-        </div>
-      );
+      // For guest pages, just render content - no wrapper
+      // Layout (navbar/footer, prose styling) is handled by Next.js layout
+      return <>{children}</>;
     },
   }
 };

@@ -78,7 +78,7 @@ Visit `http://localhost:3000` to see the application.
 
 ## Project Structure
 
-```
+```md
 pucked/
 ├── app/              # Next.js app directory
 │   ├── [locale]/    # Internationalized routes

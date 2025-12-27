@@ -1,15 +1,27 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { GuestTemplate } from "@/components/guest-template";
+import { GuestNavbar } from "./guest-navbar";
+import { GuestFooter } from "./guest-footer";
 import { ReactNode } from "react";
 
 interface LocaleLayoutClientProps {
   children: ReactNode;
   locale: string;
+  menuItems: any[];
+  siteName: { en: string; fa: string };
+  logoUrl: string;
+  settings: any;
 }
 
-export function LocaleLayoutClient({ children, locale }: LocaleLayoutClientProps) {
+export function LocaleLayoutClient({ 
+  children, 
+  locale,
+  menuItems,
+  siteName,
+  logoUrl,
+  settings,
+}: LocaleLayoutClientProps) {
   const pathname = usePathname();
   
   // Check if we're on an auth page
@@ -19,5 +31,13 @@ export function LocaleLayoutClient({ children, locale }: LocaleLayoutClientProps
     return <>{children}</>;
   }
   
-  return <GuestTemplate locale={locale}>{children}</GuestTemplate>;
+  return (
+    <div className="min-h-screen flex flex-col">
+      <GuestNavbar menuItems={menuItems} siteName={siteName} logoUrl={logoUrl} />
+      <main className="flex-1 mx-auto prose md:prose-lg md:max-w-xl lg:max-w-2xl px-4 py-8 w-full">
+        {children}
+      </main>
+      {settings && <GuestFooter settings={settings} />}
+    </div>
+  );
 }

@@ -204,6 +204,35 @@ Advanced text editing with more formatting options.
 
 ⚠️ **Warning**: You cannot delete pages with child pages. Delete child pages first.
 
+### Landing Page (Home)
+
+The landing page is a special singleton page that serves as the homepage for your site. It's automatically created with the slug `"home"` and is accessible at the root of each locale:
+
+- English: `https://yoursite.com/en`
+- Farsi: `https://yoursite.com/fa`
+
+**Key Characteristics:**
+- **Singleton**: There's only one landing page per site
+- **Auto-created**: The page is automatically created when you first visit the root URL
+- **Root URL**: It's served at `/` and `/{locale}` paths
+- **Always Available**: Cannot be deleted (it's the default page)
+
+**Editing the Landing Page:**
+
+1. Navigate to `/admin/pages`
+2. Find the page with slug `"home"` in the page tree
+3. Click to select it
+4. Edit the content using the visual editor
+5. Save your changes
+
+**Best Practices for Landing Pages:**
+
+- Keep it focused and concise
+- Include a clear call-to-action
+- Use engaging visuals
+- Optimize for both languages
+- Test on mobile devices
+
 ## Managing Translations
 
 Pucked supports bilingual content (English and Farsi).
