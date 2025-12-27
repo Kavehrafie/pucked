@@ -114,7 +114,28 @@ export async function updateSiteSettings(
   updates: Partial<SiteSettings>
 ): Promise<void> {
   for (const [key, value] of Object.entries(updates)) {
-    await setSiteSetting(key, JSON.stringify(value), "general");
+    // Skip undefined values entirely
+    if (value === undefined) {
+      continue;
+    }
+
+    // For objects, filter out undefined/empty properties and skip if empty
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      // Filter out undefined and empty string properties
+      const filtered = Object.fromEntries(
+        Object.entries(value).filter(
+          ([, v]) => v !== undefined && v !== ""
+        )
+      );
+
+      // Only save if there are actual properties with values
+      if (Object.keys(filtered).length > 0) {
+        await setSiteSetting(key, JSON.stringify(filtered), "general");
+      }
+    } else {
+      // For non-objects (strings, arrays), save as-is
+      await setSiteSetting(key, JSON.stringify(value), "general");
+    }
   }
 }
 

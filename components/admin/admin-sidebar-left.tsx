@@ -17,7 +17,7 @@ const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Docs", href: "/admin/docs", icon: FileText },
   { name: "Pages", href: "/admin/pages", icon: FileText, disable: true, visible: false, new: true },
-  { name: "Settings", href: "/admin/settings", icon: Settings, disable: true, visible: false, new: true },
+  { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 export function AdminSidebar() {

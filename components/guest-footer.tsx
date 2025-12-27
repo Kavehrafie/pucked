@@ -17,6 +17,11 @@ export function GuestFooter({ settings }: GuestFooterProps) {
   const socialLinks = settings.socialLinks || {};
   const quickLinks = settings.footerQuickLinks?.[locale as keyof typeof settings.footerQuickLinks] || [];
 
+  // Filter out empty social links
+  const filteredSocialLinks = Object.fromEntries(
+    Object.entries(socialLinks).filter(([, url]) => url && url.trim() !== '')
+  );
+
   const socialIcons = {
     twitter: Twitter,
     facebook: Facebook,
@@ -60,12 +65,11 @@ export function GuestFooter({ settings }: GuestFooterProps) {
           )}
 
           {/* Social Links */}
-          {Object.keys(socialLinks).length > 0 && (
+          {Object.keys(filteredSocialLinks).length > 0 && (
             <div className={isRTL ? "text-right" : "text-left"}>
               <h4 className="text-sm font-semibold mb-4">{t("socialLinks")}</h4>
               <div className={`flex gap-4 ${isRTL ? "justify-end" : "justify-start"}`}>
-                {Object.entries(socialLinks).map(([platform, url]) => {
-                  if (!url) return null;
+                {Object.entries(filteredSocialLinks).map(([platform, url]) => {
                   const Icon = socialIcons[platform as keyof typeof socialIcons];
                   if (!Icon) return null;
 
