@@ -540,6 +540,128 @@ If true code unification is needed, consider:
 
 **For detailed patterns, forms, layouts, and examples, see the UI Guidelines at `/admin/docs/dev/ui-guidelines`**
 
+## Type System & Organization
+
+**CRITICAL**: All shared types are centralized in the `types/` directory to prevent circular dependencies and improve maintainability.
+
+### Type Organization Structure
+
+```
+types/
+├── index.ts           # Central export point - import from here!
+├── database.ts        # Database & domain types (PageTreeNode, PageTranslationStatus)
+├── navigation.ts      # Navigation & routing types (MenuItem, TreeItem, FlattenedItem)
+├── components.ts      # React component prop types (ImageBlockProps, AdminSidebarRightProps)
+├── puck.ts           # Puck page builder types (PuckData, ComponentProps, RootProps)
+├── site-settings.ts  # Site settings types (SiteSettings, SiteSettingValue)
+└── env.d.ts          # Environment variable types (ProcessEnv)
+```
+
+### Type Import Patterns
+
+**✅ RECOMMENDED** - Import from central index:
+```typescript
+import type { SiteSettings, MenuItem, PageTreeNode, PuckData } from "@/types"
+```
+
+**✅ ALTERNATIVE** - Import from specific module (better tree-shaking):
+```typescript
+import type { SiteSettings } from "@/types/site-settings"
+import type { PageTreeNode } from "@/types/database"
+```
+
+**❌ AVOID** - Importing from implementation files:
+```typescript
+// Don't do this anymore!
+import type { SiteSettings } from "@/lib/site-settings"
+import type { MenuItem } from "@/lib/page-tree"
+import type { PageTreeNode } from "@/lib/page"
+```
+
+### Type Categories
+
+**Database Types** (`types/database.ts`):
+- `PageTranslationStatus` - Status of a page translation (published, has content)
+- `PageTreeNode` - Hierarchical page structure with translations
+- Re-exports Drizzle types: `User`, `Session`, `Invitation`, `Page`, `PageTranslation`, `SiteSetting`
+
+**Navigation Types** (`types/navigation.ts`):
+- `MenuItem` - Navigation menu item with children
+- `TreeItem` - Generic tree structure for drag-and-drop
+- `FlattenedItem` - Flattened tree for list rendering
+
+**Component Types** (`types/components.ts`):
+- `AdminSidebarRightProps` - Admin right sidebar panel
+- `ImageBlockProps` - Image block component
+- `TreeItemProps` - Tree item component props
+- `SortableTreeProps` - Sortable tree component
+
+**Puck Types** (`types/puck.ts`):
+- `ComponentProps` - Props for each Puck component type
+- `RootProps` - Root page configuration
+- `PuckData` - Complete Puck page data structure
+- `TypedComponentData` - Helper for component-specific data
+
+**Site Settings Types** (`types/site-settings.ts`):
+- `SiteSettingValue` - Union type of all possible setting values
+- `SiteSettings` - Complete settings object structure
+- `SiteSettingKey` - Known setting keys
+
+### Critical Rules
+
+1. **No Circular Dependencies**: The `types/` folder must NEVER import from `lib/`, `components/`, or `app/`
+2. **Allowed Imports**: Types can only import from `db/schema.ts` (Drizzle types) and external packages
+3. **Single Source of Truth**: Each type must be defined in only one place
+4. **Type-Only Imports**: Always use `import type { }` for type imports to enable better tree-shaking
+5. **Schema Types**: Database schema types are re-exported from `types/database.ts` for convenience
+
+### When Adding New Types
+
+1. **Choose the right file** based on the category (database, navigation, components, puck, settings)
+2. **Define the type** with proper JSDoc comments
+3. **Export from index** - Add to `types/index.ts` if it's commonly used
+4. **Update imports** - Update any files that were using the old location
+5. **Never define types in**:
+   - Component files (move to `types/components.ts`)
+   - Library files in `lib/` (move to appropriate `types/*.ts`)
+   - Server actions or route handlers (move to `types/*.ts`)
+
+### Database Schema Type Pattern
+
+When using Drizzle's `mode: "json"` for JSON columns:
+```typescript
+// In db/schema.ts
+import type { SiteSettingValue } from "@/types/site-settings"
+
+export const siteSettings = sqliteTable("site_settings", {
+  value: text("value", { mode: "json" }).notNull().$type<SiteSettingValue>(),
+})
+```
+
+This provides type safety for JSON columns while letting Drizzle handle serialization automatically.
+
+### Migration Examples
+
+**Before** (scattered types):
+```typescript
+import type { SiteSettings } from "@/lib/site-settings"
+import type { MenuItem } from "@/lib/page-tree"
+import type { PageTreeNode } from "@/lib/page"
+import type { ImageBlockProps } from "@/components/admin/image-block"
+```
+
+**After** (centralized):
+```typescript
+import type {
+  SiteSettings,
+  MenuItem,
+  PageTreeNode,
+  ImageBlockProps
+} from "@/types"
+```
+
+**See Also**: `types/README.md` for complete documentation and `TYPES_ORGANIZATION.md` for migration guide.
+
 ## Common Pitfalls
 
 1. **useActionState with onClick**: Never call `formAction()` directly in onClick handlers. Always pass it to form's `action` prop or use `type="submit"` button
@@ -550,12 +672,14 @@ If true code unification is needed, consider:
 6. **Invitation Flow**: Users created via GitHub OAuth have `invitationAcceptedAt = null` initially
 7. **Database Migrations**: Schema changes don't apply until you run `pnpm db:generate && pnpm db:migrate`
 8. **Type Imports**: Use `import type { }` for type-only imports to avoid bundling issues
-9. **Inline Styles**: Never use inline styles - always use Tailwind classes
-10. **Missing Dark Mode**: Always add `dark:` variants for colors
-11. **Wrong Component Library**: Using Shadcn in admin or Puck in public areas - stick to the dual design system
-12. **Puck Layout Confusion**: The editor preview and guest pages use DIFFERENT layout components (Preview vs Guest). This is intentional - don't try to unify them without understanding the next-intl context limitation
-13. **Modifying Puck root.render**: In render mode, always return just `<>{children}</>`. Never add layout wrappers - Next.js layout handles that
-14. **Prose Class Mismatch**: If you change prose classes in guest layout, you MUST also update them in puck.config.tsx preview mode, or the editor won't match the published page
+9. **Type Location**: Always define types in the `types/` directory, never in component files or lib files. Import from `@/types` not from implementation files
+10. **Circular Dependencies**: The `types/` folder must never import from `lib/`, `components/`, or `app/`. Only import from `db/schema.ts` and external packages
+11. **Inline Styles**: Never use inline styles - always use Tailwind classes
+12. **Missing Dark Mode**: Always add `dark:` variants for colors
+13. **Wrong Component Library**: Using Shadcn in admin or Puck in public areas - stick to the dual design system
+14. **Puck Layout Confusion**: The editor preview and guest pages use DIFFERENT layout components (Preview vs Guest). This is intentional - don't try to unify them without understanding the next-intl context limitation
+15. **Modifying Puck root.render**: In render mode, always return just `<>{children}</>`. Never add layout wrappers - Next.js layout handles that
+16. **Prose Class Mismatch**: If you change prose classes in guest layout, you MUST also update them in puck.config.tsx preview mode, or the editor won't match the published page
 
 ## Key Files Reference
 
@@ -570,6 +694,15 @@ If true code unification is needed, consider:
 - `db/schema.ts` - Drizzle schema definitions
 - `lib/db.ts` - Database client
 - `drizzle.config.ts` - Migration configuration
+
+**Types**:
+- `types/index.ts` - Central export point for all types
+- `types/database.ts` - Database & domain types (PageTreeNode, PageTranslationStatus)
+- `types/navigation.ts` - Navigation types (MenuItem, TreeItem, FlattenedItem)
+- `types/components.ts` - Component prop types (ImageBlockProps, AdminSidebarRightProps)
+- `types/puck.ts` - Puck page builder types (PuckData, ComponentProps, RootProps)
+- `types/site-settings.ts` - Site settings types (SiteSettings, SiteSettingValue)
+- `types/README.md` - Complete types documentation
 
 **Routing**:
 - `proxy.ts` - i18n middleware (excludes admin/api)

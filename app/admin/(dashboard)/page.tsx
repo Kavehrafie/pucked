@@ -2,7 +2,7 @@ import { requireAuth } from "@/lib/route-guard";
 import { PagesTree } from "./pages-tree";
 
 export default async function DashboardPage() {
-  await requireAuth({ requireInvitation: true });
+  await requireAuth();
 
   return (
     <div className="p-6 space-y-6">

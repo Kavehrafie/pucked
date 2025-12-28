@@ -1,5 +1,6 @@
 import { sqliteTable, text, integer, index, unique, AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import { relations, sql } from "drizzle-orm";
+import type { SiteSettingValue } from "@/types/site-settings";
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey(),
@@ -57,7 +58,7 @@ export const pageTranslations = sqliteTable("page_translations", {
 export const siteSettings = sqliteTable("site_settings", {
   id: integer("id").primaryKey(),
   key: text("key").notNull().unique(),
-  value: text("value").notNull(),
+  value: text("value", { mode: "json" }).notNull().$type<SiteSettingValue>(),
   category: text("category").notNull().default("general"),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
 });

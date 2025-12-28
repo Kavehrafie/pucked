@@ -1,15 +1,15 @@
 "use client";
 
+import type { HeaderAction, AdminLayoutState, HeaderActionLink, HeaderActionButton } from "@/types/components";
 import { createContext, useContext, useState, ReactNode } from "react";
 
-type AdminLayoutState = {
-  sidebarLeftVisible: boolean;
-  setSidebarLeftVisible: (visible: boolean) => void;
-  toggleSidebarLeft: () => void;
-  sidebarRightVisible: boolean;
-  setSidebarRightVisible: (visible: boolean) => void;
-  toggleSidebarRight: () => void;
-};
+export function isButtonAction(action: HeaderAction): action is HeaderActionButton {
+  return typeof action === "object" && action !== null && "onClick" in action;
+}
+
+export function isLinkAction(action: HeaderAction): action is HeaderActionLink {
+  return typeof action === "object" && action !== null && "href" in action;
+}
 
 const AdminLayoutContext = createContext<AdminLayoutState | undefined>(
   undefined
@@ -18,6 +18,8 @@ const AdminLayoutContext = createContext<AdminLayoutState | undefined>(
 export function AdminLayoutProvider({ children }: { children: ReactNode }) {
   const [sidebarLeftVisible, setSidebarLeftVisible] = useState(true);
   const [sidebarRightVisible, setSidebarRightVisible] = useState(true);
+  const [actions, setActions] = useState<HeaderAction[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
   const toggleSidebarLeft = () => {
     setSidebarLeftVisible((prev) => !prev);
@@ -27,9 +29,13 @@ export function AdminLayoutProvider({ children }: { children: ReactNode }) {
     setSidebarRightVisible((prev) => !prev);
   };
 
+  const toggleLoading = () => {
+    setIsLoading((prev) => !prev);
+  }
+
   return (
     <AdminLayoutContext.Provider
-      value={{ sidebarLeftVisible, setSidebarLeftVisible, toggleSidebarLeft, sidebarRightVisible, setSidebarRightVisible, toggleSidebarRight }}
+      value={{ sidebarLeftVisible, setSidebarLeftVisible, toggleSidebarLeft, sidebarRightVisible, setSidebarRightVisible, toggleSidebarRight, isLoading, setIsLoading, toggleLoading, actions, setActions }}
     >
       {children}
     </AdminLayoutContext.Provider>

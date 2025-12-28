@@ -1,12 +1,7 @@
 "use client";
 
 import { useAdminLayout } from "@/app/admin/(dashboard)/admin-layout-context";
-
-
-export interface AdminSidebarRightProps {
-  children: React.ReactNode;
-  title?: string;
-}
+import type { AdminSidebarRightProps } from "@/types/components";
 
 export function AdminSidebarRight({ children, title = "Properties" }: AdminSidebarRightProps) {
   const { sidebarRightVisible } = useAdminLayout();

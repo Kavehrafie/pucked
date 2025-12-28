@@ -1,27 +1,10 @@
 import { getDb } from "@/db";
 import { siteSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import type { SiteSettingValue, SiteSettings } from "@/types/site-settings";
 
-export type SiteSettingValue = string;
-
-export interface SiteSettings {
-  siteName: {
-    en: string;
-    fa: string;
-  };
-  logoUrl?: string;
-  socialLinks: {
-    twitter?: string;
-    facebook?: string;
-    instagram?: string;
-    linkedin?: string;
-    youtube?: string;
-  };
-  footerQuickLinks?: {
-    en: Array<{ label: string; url: string }>;
-    fa: Array<{ label: string; url: string }>;
-  };
-}
+// Re-export types for convenience
+export type { SiteSettingValue, SiteSettings };
 
 const DEFAULT_SETTINGS: SiteSettings = {
   siteName: {
@@ -55,7 +38,7 @@ export async function getSiteSetting(key: string): Promise<SiteSettingValue | nu
  */
 export async function setSiteSetting(
   key: string,
-  value: string,
+  value: SiteSettingValue,
   category: string = "general"
 ): Promise<void> {
   const db = getDb();
@@ -84,7 +67,8 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   const db = getDb();
   const settings = await db.select().from(siteSettings);
 
-  const result: SiteSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  // Clone default settings to start with
+  const result: SiteSettings = { ...DEFAULT_SETTINGS };
 
   for (const setting of settings) {
     const keys = setting.key.split(".");
@@ -97,11 +81,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       current = current[keys[i]];
     }
 
-    try {
-      current[keys[keys.length - 1]] = JSON.parse(setting.value);
-    } catch {
-      current[keys[keys.length - 1]] = setting.value;
-    }
+    current[keys[keys.length - 1]] = setting.value;
   }
 
   return result;
@@ -130,11 +110,11 @@ export async function updateSiteSettings(
 
       // Only save if there are actual properties with values
       if (Object.keys(filtered).length > 0) {
-        await setSiteSetting(key, JSON.stringify(filtered), "general");
+        await setSiteSetting(key, filtered, "general");
       }
     } else {
       // For non-objects (strings, arrays), save as-is
-      await setSiteSetting(key, JSON.stringify(value), "general");
+      await setSiteSetting(key, value, "general");
     }
   }
 }
@@ -143,9 +123,11 @@ export async function updateSiteSettings(
  * Initialize default site settings if they don't exist
  */
 export async function initializeDefaultSiteSettings(): Promise<void> {
-  const existing = await getSiteSettings();
+  const db = getDb();
+  const existing = await db.select().from(siteSettings).limit(1);
 
-  if (!existing.siteName || existing.siteName.en === DEFAULT_SETTINGS.siteName.en) {
+  // Only initialize if no settings exist at all
+  if (existing.length === 0) {
     await updateSiteSettings(DEFAULT_SETTINGS);
   }
 }

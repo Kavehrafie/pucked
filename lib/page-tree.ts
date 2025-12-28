@@ -1,14 +1,7 @@
 import { getDb } from "@/db";
 import { pages, pageTranslations } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
-
-export interface MenuItem {
-  id: number;
-  title: string;
-  slug: string;
-  fullPath: string;
-  children: MenuItem[];
-}
+import type { MenuItem } from "@/types";
 
 /**
  * Get the page tree for navigation menu

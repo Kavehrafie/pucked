@@ -3,22 +3,7 @@ import { getDb } from "@/db";
 import { pages, pageTranslations } from "@/db/schema";
 import { eq, and, isNull, sql, like } from "drizzle-orm";
 import type { Page, PageTranslation } from "@/db/schema";
-
-export interface PageTranslationStatus {
-  locale: string;
-  published: boolean;
-  hasContent: boolean;
-}
-
-export interface PageTreeNode {
-  id: string;
-  title: string;
-  slug: string;
-  isDraft: boolean;
-  showOnMenu: boolean;
-  translations?: PageTranslationStatus[];
-  children?: PageTreeNode[];
-}
+import type { PageTreeNode, PageTranslationStatus } from "@/types";
 
 /**
  * Build a hierarchical tree structure from flat pages array

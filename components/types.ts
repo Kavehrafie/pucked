@@ -1,13 +1,8 @@
-import type {UniqueIdentifier} from '@dnd-kit/core';
+/**
+ * @deprecated Import from @/types instead
+ * This file is kept for backward compatibility
+ */
 
-export interface TreeItem {
-  id: UniqueIdentifier;
-  children: TreeItem[];
-  collapsed?: boolean;
-}
+import type { TreeItem, FlattenedItem } from "@/types";
 
-export interface FlattenedItem extends TreeItem {
-  parentId: UniqueIdentifier | null;
-  depth: number;
-  index: number;
-}
+export type { TreeItem, FlattenedItem };

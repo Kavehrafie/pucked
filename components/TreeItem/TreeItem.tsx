@@ -2,12 +2,7 @@ import React, {forwardRef, HTMLAttributes} from 'react';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-
-export interface PageTranslationStatus {
-  locale: string;
-  published: boolean;
-  hasContent: boolean;
-}
+import type { PageTranslationStatus } from '@/types/database';
 
 export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, 'id'> {
   childCount?: number;

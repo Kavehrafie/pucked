@@ -2,8 +2,13 @@ import { requireAuth } from "@/lib/route-guard";
 import { SettingsForm } from "./settings-form";
 import { getSiteSettings } from "@/lib/site-settings";
 
+export const metadata = {
+  title: "Site Settings - Admin Dashboard",
+  description: "Manage your site configuration and branding",
+};
+
 export default async function SettingsPage() {
-  await requireAuth({ requireInvitation: true });
+  await requireAuth();
   const settings = await getSiteSettings();
 
   return (

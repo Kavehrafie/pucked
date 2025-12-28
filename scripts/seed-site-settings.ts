@@ -8,31 +8,31 @@ async function seedSiteSettings() {
   const defaultSettings = [
     {
       key: "siteName",
-      value: JSON.stringify({
+      value: {
         en: "Pucked",
         fa: "پاکد",
-      }),
+      },
       category: "general",
     },
     {
       key: "logoUrl",
-      value: JSON.stringify(""),
+      value: "",
       category: "general",
     },
     {
       key: "socialLinks",
-      value: JSON.stringify({
+      value: {
         twitter: "https://twitter.com",
         facebook: "https://facebook.com",
         instagram: "https://instagram.com",
         linkedin: "https://linkedin.com",
         youtube: "https://youtube.com",
-      }),
+      },
       category: "social",
     },
     {
       key: "footerQuickLinks",
-      value: JSON.stringify({
+      value: {
         en: [
           { label: "Home", url: "/en" },
           { label: "About", url: "/en/about" },
@@ -43,7 +43,7 @@ async function seedSiteSettings() {
           { label: "درباره ما", url: "/fa/about" },
           { label: "تماس", url: "/fa/contact" },
         ],
-      }),
+      },
       category: "footer",
     },
   ];

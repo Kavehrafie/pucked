@@ -5,14 +5,7 @@ import { Image as ImageIcon } from "lucide-react";
 import { ImageField } from "./image-field";
 import { getTextDirection } from "@/lib/text-direction";
 import { RTLTextInput } from "./rtl-text-input";
-
-export interface ImageBlockProps {
-  url?: string;
-  alt?: string;
-  caption?: string;
-  width?: number;
-  height?: number;
-}
+import type { ImageBlockProps } from "@/types/components";
 
 export const ImageBlock: ComponentConfig<ImageBlockProps> = {
   fields: {

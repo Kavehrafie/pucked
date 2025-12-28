@@ -43,10 +43,10 @@ describe('InvitationValidateForm', () => {
     render(<InvitationValidateForm userId={1} />)
 
     const input = screen.getByRole('textbox', { hidden: true })
-    await user.type(input, 'ABCD1234EFGH')
+    await user.type(input, 'FF2B03C5A386')
 
     // The hidden input should have the value
-    expect(input).toHaveValue('ABCD1234EFGH')
+    expect(input).toHaveValue('FF2B03C5A386')
   })
 
   it('shows error message when submission fails', async () => {
@@ -62,6 +62,17 @@ describe('InvitationValidateForm', () => {
     // Note: Testing actual form submission with useActionState is complex
     // This test verifies the form structure and interaction
     expect(input).toHaveValue('INVALID')
+  })
+
+  it('accepts lowercase letters and converts to uppercase', async () => {
+    const user = userEvent.setup()
+    render(<InvitationValidateForm userId={1} />)
+
+    const input = screen.getByRole('textbox', { hidden: true })
+    await user.type(input, 'ff2b03c5a386')
+
+    // The input should accept lowercase
+    expect(input).toHaveValue('ff2b03c5a386')
   })
 
   it('disables submit button while pending', async () => {

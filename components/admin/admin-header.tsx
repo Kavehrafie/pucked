@@ -1,49 +1,47 @@
 "use client";
 
 import { Button, IconButton } from "@measured/puck";
-import { Home, LogOut, PanelLeft, PanelRight, Plus } from "lucide-react";
+import { LogOut, PanelLeft, PanelRight } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/actions/auth";
-import { useAdminLayout } from "@/app/admin/(dashboard)/admin-layout-context";
+import { isButtonAction, useAdminLayout } from "@/app/admin/(dashboard)/admin-layout-context";
+import { HeaderAction } from "@/types";
+import { useEffect, useMemo } from "react";
 
 export function AdminHeader() {
   const pathname = usePathname();
-  const { sidebarLeftVisible, toggleSidebarLeft, sidebarRightVisible, toggleSidebarRight } = useAdminLayout();
+
+
+  const title = useMemo(() => {
+    if (!pathname) return "Dashboard";
+
+    const pathWithoutAdmin = pathname.replace("/admin", "")
+    const segments = pathWithoutAdmin.split("/").filter(Boolean);
+
+    if (segments.length === 0) return "Dashboard";
+
+    return segments[segments.length - 1].split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+  }, [pathname])
+
+  const { sidebarLeftVisible, toggleSidebarLeft, sidebarRightVisible, toggleSidebarRight, isLoading, setIsLoading, toggleLoading, actions, setActions } = useAdminLayout();
+
+  // Default actions
+  useEffect(() => {
+    setActions([
+      {
+        label: "Logout",
+        icon: <LogOut className="w-3.5 h-3.5" />,
+        onClick: logout,
+      }
+    ])
+  }, [setActions]);
 
   return (
-    <header
-      style={{
-        background: "var(--puck-color-white)",
-        borderBottom: "1px solid var(--puck-color-grey-09)",
-        color: "var(--puck-color-black)",
-        position: "relative",
-        maxWidth: "100vw"
-      }}
-    >
-      <div
-        style={{
-          alignItems: "end",
-          display: "grid",
-          gap: "var(--puck-space-px)",
-          gridTemplateAreas: '"left middle right"',
-          gridTemplateColumns: "1fr auto 1fr",
-          gridTemplateRows: "auto",
-          padding: "var(--puck-space-px)"
-        }}
-      >
+    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 relative max-w-screen">
+      <div className="grid items-end gap-(--puck-space-px) grid-areas-[left_middle_right] grid-cols-[1fr_auto_1fr] grid-rows-auto p-(--puck-space-px)">
         {/* Left side - Toggle buttons (always visible like Puck) */}
-        <div
-          style={{
-            display: "flex",
-            marginInlineStart: "-4px",
-            paddingTop: "2px"
-          }}
-        >
-          <div
-            style={{
-              color: sidebarLeftVisible ? "var(--puck-color-black)" : "var(--puck-color-grey-05)",
-            }}
-          >
+        <div className="flex -ms-1 pt-0.5">
+          <div className={sidebarLeftVisible ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-600"}>
             <IconButton
               type="button"
               title="Toggle left sidebar"
@@ -52,61 +50,62 @@ export function AdminHeader() {
               <PanelLeft focusable="false" />
             </IconButton>
           </div>
-          <div
-            style={{
-              color: sidebarRightVisible ? "var(--puck-color-black)" : "var(--puck-color-grey-05)",
-            }}
-          >
+          <div className={sidebarRightVisible ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-600"}>
             <IconButton
               type="button"
               title="Toggle right sidebar"
               onClick={toggleSidebarRight}
             >
-          <PanelRight focusable="false" />
-        </IconButton>
+              <PanelRight focusable="false" />
+            </IconButton>
           </div>
-      </div>
+        </div>
 
-      {/* Middle - Title (using Puck's Heading style) */}
-      <div
-        style={{
-          alignSelf: "center",
-          display: "block",
-          color: "var(--puck-color-black)",
-          fontWeight: 700,
-          margin: 0,
-          fontSize: "var(--puck-font-size-xs)"
-        }}
-      >
-        {pathname?.replace("/admin", "") || "Dashboard"}
-      </div>
+        {/* Middle - Title (using Puck's Heading style) */}
+        <div className="self-center block text-gray-900 dark:text-gray-100 font-bold m-0 text-xs">
+          {/* {pathname?.replace("/admin", "") || "Dashboard"} */}
+          {title}
+        </div>
 
-      {/* Right side - Actions */}
-      <div
-        style={{
-          display: "flex",
-          gap: "16px",
-          justifyContent: "flex-end",
-          alignItems: "center"
-        }}
-      >
-        <Button
-          href="/admin/pages/create"
-          variant="primary"
-          icon={<Plus style={{ width: "14px", height: "14px" }} />}
-        >
-          New page
-        </Button>
-
-        <Button
-          variant="secondary"
-          icon={<LogOut style={{ width: "14px", height: "14px" }} />}
-          onClick={logout}
-        >
-          Logout
-        </Button>
+        {/* Right side - Actions */}
+        <div className="flex gap-4 justify-end items-center">
+          {actions.map((action, index) =>
+            <HeaderActionItem key={index} action={action} />
+          )}
+        </div>
       </div>
-    </div>
-    </header >
+    </header>
   );
+}
+
+function HeaderActionItem({ action }: { action: HeaderAction }) {
+
+  const actionType = useMemo(() => {
+    if (typeof action !== "object" && action !== null) {
+      return null;
+    }
+
+    if ("options" in action) {
+      return "dropdown";
+    } else if ("href" in action) {
+      return "link";
+    } else if ("onClick" in action) {
+      return "button";
+    }
+
+    return null;
+  }, [action]);
+
+  if (isButtonAction(action)) {
+    return (
+      <Button
+        key={action.label}
+        variant={action?.variant || "secondary"}
+        onClick={action.onClick}
+        icon={action.icon}
+      >
+        {action.label}
+      </Button>
+    )
+  }
 }

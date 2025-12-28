@@ -23,23 +23,12 @@ import {
 import { SortableTreeItem } from "@/components/TreeItem";
 import { ArrowRight, ArrowLeft, X } from "lucide-react";
 import type { UniqueIdentifier } from "@dnd-kit/core";
-import type { TreeItem, FlattenedItem } from "@/components/types";
+import type { TreeItem, FlattenedItem } from "@/types/navigation";
 import { Badge } from "../ui/badge";
-import type { PageTranslationStatus } from "@/lib/page";
+import type { PageTreeNode } from "@/types/database";
 import { usePageSelection } from "@/components/admin/page-selection-context";
 import { usePageTree } from "@/contexts/page-tree-context";
 import { Page } from "@/db/schema";
-
-export interface PageTreeNode {
-  id: string;
-  title: string;
-  slug: string;
-  isDraft: boolean;
-  showOnMenu: boolean;
-  translations?: PageTranslationStatus[];
-  children?: PageTreeNode[];
-  collapsed?: boolean;
-}
 
 interface SortableTreeProps {
   items: PageTreeNode[];
