@@ -1,26 +1,16 @@
-
-
-import { getCurrentSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import InvitationValidateForm from "./form";
 import { headers } from "next/headers";
-import { cookies } from "next/headers";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { requireAuth } from "@/lib/route-guard";
 
 type Props = {
   params: Promise<{locale: string}>;
 };
 
 export default async function SignUpPage({ params }: Props) {
-  const { session, user } = await getCurrentSession();
+  const { user, session } = await requireAuth({ requireInvitation: false });
   const { locale } = await params;
-
-  // Debug logging
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get("session");
-  console.log("Invitation validate page - Session cookie exists:", !!sessionCookie);
-  console.log("Invitation validate page - Session from DB:", !!session);
-  console.log("Invitation validate page - User:", user?.username);
 
   if (!session) {
     // Get the current full path to redirect back after login
@@ -32,15 +22,10 @@ export default async function SignUpPage({ params }: Props) {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-xl">
         {/* Invitation Card */}
         <Card className="shadow-xl">
           <CardHeader className="text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-green-500 to-emerald-600 rounded-2xl mx-auto shadow-lg">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
             <div>
               <CardTitle className="text-3xl">Welcome! 🎉</CardTitle>
               <CardDescription className="text-base mt-2">
@@ -51,7 +36,7 @@ export default async function SignUpPage({ params }: Props) {
 
           <CardContent className="space-y-6">
             {/* Invitation Form */}
-            <InvitationValidateForm />
+            <InvitationValidateForm userId={user.id} />
 
             {/* Help Text */}
             <div className="p-4 rounded-lg bg-muted border">

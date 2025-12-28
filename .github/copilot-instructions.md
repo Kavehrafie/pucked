@@ -12,12 +12,13 @@ This document guides AI coding agents working on the Pucked codebase - a bilingu
 - Next.js 16 App Router with React 19
 - Shadcn UI for component library
 
-**Tech Stack**: Next.js 16.1.1, React 19.2.3, Turso, Drizzle ORM, Arctic (OAuth), next-intl, Tailwind CSS v4, TypeScript (strict mode)
+**Tech Stack**: Next.js 16.1.1, React 19.2.3, Turso, Drizzle ORM, Arctic (OAuth), next-intl, Tailwind CSS v4, TypeScript (strict mode), Zod v4.2
 
 **Documentation**:
-- All documentation is now available in the admin area at `/admin/docs`
-- Key docs include: Puck Components Guide, UI Guidelines, Server Actions Guide, Authentication System, Database Setup
-- Access via `/admin/docs` after authentication
+- All documentation is now available in the admin area at `/content/docs`
+- The docs are divided into two main groups: 
+  - Development Docs - `/content/docs/dev/*`
+  - User Docs - `/content/docs/user/*`
 
 ## Critical Architecture Patterns
 
@@ -116,6 +117,10 @@ pnpm db:studio    # Open Drizzle Studio for visual inspection
 ```
 
 **Important**: Always run `pnpm db:generate` after modifying `db/schema.ts`. Migration files are auto-generated in `migrations/`.
+
+## Zod Validation Patterns
+- Don't use deprecated `flatten()`. Instead, use Zod v4.2 for schema validation
+- Use `z.flattenError()` for flat schemas (https://zod.dev/error-formatting)
 
 ## Server Actions & Forms Pattern
 
@@ -626,3 +631,7 @@ GITHUB_CLIENT_REDIRECT_URI=http://localhost:3000/api/login/github/callback
 5. Should redirect to `/signup` (new user)
 6. Enter invitation code
 7. Should redirect to `/admin`
+
+## MCP
+
+**Use Context MCP**: to receive the latest documentations of libraries and frameworks used in this project.

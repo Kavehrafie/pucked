@@ -20,6 +20,7 @@ export async function requireAuth(options: AuthGuardOptions = {}) {
   if (!user || !session) {
     redirect(redirectTo);
   }
+  
 
   // Authenticated but needs invitation
   if (requireInvitation && userNeedsInvitation(user)) {
