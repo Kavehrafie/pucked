@@ -3,9 +3,9 @@ import { generateInvitationCode } from '@/lib/invitation'
 
 describe('Invitation Utilities', () => {
   describe('generateInvitationCode', () => {
-    it('generates a 12-character code', () => {
+    it('generates a 14-character code (12 chars + 2 dashes)', () => {
       const code = generateInvitationCode()
-      expect(code).toHaveLength(12)
+      expect(code).toHaveLength(14)
     })
 
     it('generates code with correct format (XXXX-XXXX-XXXX)', () => {

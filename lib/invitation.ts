@@ -3,8 +3,6 @@ import { invitations, users } from "@/db/schema";
 import { eq, and, gt, isNull } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
-const db = getDb();
-
 export function generateInvitationCode(): string {
   const bytes = randomBytes(6);
   const code = bytes.toString("hex").toUpperCase();
@@ -12,6 +10,7 @@ export function generateInvitationCode(): string {
 }
 
 export async function createInvitation(code: string, createdBy: number, expiresAt: Date) {
+  const db = getDb();
   const invitation = await db.insert(invitations).values({
     code,
     createdBy,
@@ -21,6 +20,7 @@ export async function createInvitation(code: string, createdBy: number, expiresA
 }
 
 export async function getInvitationByCode(code: string) {
+  const db = getDb();
   const invitation = await db.query.invitations.findFirst({
     where: eq(invitations.code, code.toUpperCase()),
   });
@@ -73,6 +73,7 @@ export async function useInvitation(code: string, userId: number) {
   }
 
   // Mark invitation as used
+  const db = getDb();
   await db.update(invitations)
     .set({
       usedBy: userId,
@@ -84,6 +85,7 @@ export async function useInvitation(code: string, userId: number) {
 }
 
 export async function listInvitations() {
+  const db = getDb();
   return await db.query.invitations.findMany({
     with: {
       createdByUser: true,
