@@ -16,7 +16,6 @@ export default function InvitationValidateForm({ userId }: { userId: number }) {
     const [state, formAction, isPending] = useActionState(submitInvitationWithUserId, initialState);
     const [value, setValue] = useState("");
 
-
     return (
         <form action={formAction} className="space-y-4">
             <div className="space-y-3">
@@ -56,7 +55,7 @@ export default function InvitationValidateForm({ userId }: { userId: number }) {
                     required
                     autoComplete="off"
                 />
-                
+
             </div>
 
             {/* Field-level errors (from Zod validation) */}

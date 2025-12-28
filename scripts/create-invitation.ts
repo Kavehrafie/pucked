@@ -1,9 +1,9 @@
-import { db } from "../db";
-import { users } from "../db/schema";
+import { getDb } from "../db";
 import { generateInvitationCode, createInvitation } from "../lib/invitation";
-import { eq } from "drizzle-orm";
 
 async function main() {
+  const db = getDb();
+
   // Get the first user (should be an admin)
   const adminUsers = await db.query.users.findMany({
     limit: 1,
