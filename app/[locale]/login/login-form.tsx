@@ -1,6 +1,6 @@
 "use client";
 
-import { loginWithGitHub } from "@/app/actions";
+import { loginWithGitHub } from "@/app/actions/auth";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
