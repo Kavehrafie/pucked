@@ -9,10 +9,11 @@ import { getDb } from "@/db";
 import { pages, pageTranslations } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { eq, and } from "drizzle-orm";
-import { updatePageFullPath, updateFullPathTree, buildPageTree, updateFullPathsForTree, updateFullPathForSlugChange } from "@/lib/page";
+import { updatePageFullPath, updateFullPathTree, updateFullPathForSlugChange } from "@/lib/page";
 import { requireAuth } from "@/lib/route-guard";
+import { pageContentSchema } from "./actions/fields-schema";
 
-type FormState = {
+ type FormState = {
   errors?: {
     formErrors?: string[]
     fieldErrors?: {
@@ -35,7 +36,7 @@ type FormState = {
   }
 }
 
-const db = getDb();
+export const db = getDb();
 
 const createPageSchema = z.object({
 	title: z.string().min(1).max(100),
@@ -109,85 +110,6 @@ export async function createPageAction(prevState: FormState, formData: FormData)
 
 	redirect("/admin")
 }
-
-/**
- * Save page order after drag and drop reordering
- */
-export async function savePageOrder(prevState: FormState, formData: FormData) {
-	const { user } = await getCurrentSession();
-	if (!user) {
-		return {
-			errors: {
-				_form: ["You must be logged in to save page order"],
-			},
-		};
-	}
-
-	// Get the order data from form data
-	const orderData = formData.get("order");
-	if (!orderData || typeof orderData !== "string") {
-		return {
-			errors: {
-				_form: ["Invalid order data"],
-			},
-		};
-	}
-
-	try {
-		const pagesOrder = JSON.parse(orderData) as Array<{
-			id: string;
-			parentId: string | null;
-			sortOrder: number;
-		}>;
-
-		console.log("Saving page order:", pagesOrder);
-
-		// First, update all pages' parent and sort order
-		for (const page of pagesOrder) {
-			await db
-				.update(pages)
-				.set({
-					parentId: page.parentId ? Number(page.parentId) : null,
-					sortOrder: page.sortOrder,
-				})
-				.where(eq(pages.id, Number(page.id)))
-				.returning();
-		}
-
-		// After updating all parent relationships, fetch the complete tree
-		// and update all full paths in a single batch operation
-		const allPages = await db.select().from(pages).orderBy(pages.sortOrder);
-		
-		// Build the tree structure
-		const allTranslations = await db.select().from(pageTranslations);
-		const translationsMap = new Map<number, typeof pageTranslations.$inferSelect[]>();
-		
-		allTranslations.forEach(t => {
-			if (!translationsMap.has(t.pageId)) {
-				translationsMap.set(t.pageId, []);
-			}
-			translationsMap.get(t.pageId)!.push(t);
-		});
-		
-		const tree = buildPageTree(allPages, translationsMap, null);
-		
-		// Update full paths for all pages in one batch
-		await updateFullPathsForTree(tree);
-
-		revalidatePath("/admin");
-
-		return { success: true };
-	} catch (error) {
-		console.error("Error saving page order:", error);
-		return {
-			errors: {
-				_form: ["Failed to save page order. Please try again."],
-			},
-		};
-	}
-}
-
-
 
 export async function savePageContent(
 	pageId: number,

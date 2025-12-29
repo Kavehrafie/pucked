@@ -1,9 +1,13 @@
-
 import { getDb } from "@/db";
 import { pages, pageTranslations } from "@/db/schema";
-import { eq, and, isNull, sql, like } from "drizzle-orm";
-import type { Page, PageTranslation } from "@/db/schema";
+import { eq, and, isNull, sql, like, SQL, Dialect } from "drizzle-orm";
+import type { Page, PageInsert, PageTranslation } from "@/db/schema";
 import type { PageTreeNode, PageTranslationStatus } from "@/types";
+import { SQLiteDialect, SQLiteInsert, SQLiteUpdate, SQLiteUpdateBuilder } from "drizzle-orm/sqlite-core";
+import { BatchItem, BatchResponse } from "drizzle-orm/batch";
+import { LibSQLDatabase } from "drizzle-orm/libsql";
+import { RunnableQuery } from "drizzle-orm/runnable-query";
+import * as schema from "@/db/schema";
 
 /**
  * Build a hierarchical tree structure from flat pages array
@@ -19,7 +23,7 @@ export function buildPageTree(
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((page) => {
       const pageTranslations = translationsMap.get(page.id) || [];
-      const translationStatuses = pageTranslations.map(t => ({
+      const translationStatuses = pageTranslations.map((t) => ({
         locale: t.locale,
         published: t.published,
         hasContent: t.content !== null,
@@ -44,19 +48,19 @@ export function buildPageTree(
  */
 export async function getPagesTree(): Promise<PageTreeNode[]> {
   const allPages = await db.select().from(pages).orderBy(pages.sortOrder);
-  
+
   // Fetch all translations and group by pageId
   const allTranslations = await db.select().from(pageTranslations);
   const translationsMap = new Map<number, PageTranslation[]>();
-  
-  allTranslations.forEach(translation => {
+
+  allTranslations.forEach((translation) => {
     const pageId = translation.pageId;
     if (!translationsMap.has(pageId)) {
       translationsMap.set(pageId, []);
     }
     translationsMap.get(pageId)!.push(translation);
   });
-  
+
   return buildPageTree(allPages, translationsMap, null);
 }
 
@@ -108,7 +112,6 @@ export async function getPageByFullPath(fullPath: string) {
   };
 }
 
-
 /**
  * Check if a page is the landing page (singleton "home" page)
  */
@@ -125,28 +128,33 @@ export async function getPublishedTranslationsForPage(pageId: number) {
     .from(pageTranslations)
     .where(eq(pageTranslations.pageId, pageId));
 
-  return translations.filter(t => t.published);
+  return translations.filter((t) => t.published);
 }
 
 /**
  * Find the best fallback translation for a page
  * Priority: English -> first published translation
  */
-export async function findFallbackTranslation(pageId: number, currentLocale: string) {
+export async function findFallbackTranslation(
+  pageId: number,
+  currentLocale: string
+) {
   const translations = await db
     .select()
     .from(pageTranslations)
     .where(eq(pageTranslations.pageId, pageId));
 
   // Filter to only published translations
-  const publishedTranslations = translations.filter(t => t.published);
+  const publishedTranslations = translations.filter((t) => t.published);
 
   if (publishedTranslations.length === 0) {
     return null;
   }
 
   // First, try to find English translation
-  const englishTranslation = publishedTranslations.find(t => t.locale === 'en');
+  const englishTranslation = publishedTranslations.find(
+    (t) => t.locale === "en"
+  );
   if (englishTranslation) {
     return englishTranslation;
   }
@@ -159,7 +167,10 @@ export async function findFallbackTranslation(pageId: number, currentLocale: str
  * Get page content with fallback logic
  * Returns null if no published translation exists
  */
-export async function getPageContentWithFallback(pageId: number, locale: string) {
+export async function getPageContentWithFallback(
+  pageId: number,
+  locale: string
+) {
   const [translation] = await db
     .select()
     .from(pageTranslations)
@@ -181,7 +192,7 @@ export async function getPageContentWithFallback(pageId: number, locale: string)
 
   // If translation doesn't exist or is not published, find fallback
   const fallback = await findFallbackTranslation(pageId, locale);
-  
+
   if (!fallback) {
     // No published translation exists
     return null;
@@ -203,14 +214,17 @@ export async function getOrCreateLandingPage() {
 
   if (!page) {
     // Create the landing page if it doesn't exist
-    page = {...(await createPage({
-      title: "Home",
-      slug: "home",
-      isDraft: false,
-      showOnMenu: true,
-      parentId: null,
-      sortOrder: 0,
-    })), translations: []};
+    page = {
+      ...(await createPage({
+        title: "Home",
+        slug: "home",
+        isDraft: false,
+        showOnMenu: true,
+        parentId: null,
+        sortOrder: 0,
+      })),
+      translations: [],
+    };
   }
 
   return page;
@@ -220,11 +234,7 @@ export async function getOrCreateLandingPage() {
  * Get a page by its ID with translations
  */
 export async function getPageById(id: number) {
-  const [page] = await db
-    .select()
-    .from(pages)
-    .where(eq(pages.id, id))
-    .limit(1);
+  const [page] = await db.select().from(pages).where(eq(pages.id, id)).limit(1);
 
   if (!page) return null;
 
@@ -263,14 +273,14 @@ export async function updatePage(
   // If slug or parent changed, update fullPath for this page and all descendants
   if (data.slug !== undefined || data.parentId !== undefined) {
     await updateFullPathTree(id);
-    
+
     // Return the page with updated fullPath
     const [pageWithFullPath] = await db
       .select()
       .from(pages)
       .where(eq(pages.id, id))
       .limit(1);
-    
+
     return pageWithFullPath;
   }
 
@@ -415,7 +425,7 @@ async function generateFullPath(pageId: number): Promise<string> {
     currentId = page.parentId;
   }
 
-  return pathSegments.join('/');
+  return pathSegments.join("/");
 }
 
 /**
@@ -423,11 +433,8 @@ async function generateFullPath(pageId: number): Promise<string> {
  */
 export async function updatePageFullPath(pageId: number) {
   const fullPath = await generateFullPath(pageId);
-  
-  await db
-    .update(pages)
-    .set({ fullPath })
-    .where(eq(pages.id, pageId));
+
+  await db.update(pages).set({ fullPath }).where(eq(pages.id, pageId));
 }
 
 /**
@@ -463,7 +470,10 @@ export async function updateFullPathTree(pageId: number) {
  * Build a map of page IDs to their full paths from a tree structure
  * This is much more efficient than querying the database for each page
  */
-export function buildFullPathMap(tree: PageTreeNode[], parentPath = ""): Map<string, string> {
+export function buildFullPathMap(
+  tree: PageTreeNode[],
+  parentPath = ""
+): Map<string, string> {
   const pathMap = new Map<string, string>();
 
   function traverse(nodes: PageTreeNode[], currentPath: string) {
@@ -485,15 +495,22 @@ export function buildFullPathMap(tree: PageTreeNode[], parentPath = ""): Map<str
  * Get the full path for a page from the tree structure
  * Use this when you have the tree in memory (client-side or server-side with tree loaded)
  */
-export function getFullPathFromTree(tree: PageTreeNode[], pageId: string): string | null {
-  function findPath(nodes: PageTreeNode[], targetId: string, currentPath = ""): string | null {
+export function getFullPathFromTree(
+  tree: PageTreeNode[],
+  pageId: string
+): string | null {
+  function findPath(
+    nodes: PageTreeNode[],
+    targetId: string,
+    currentPath = ""
+  ): string | null {
     for (const node of nodes) {
       const nodePath = currentPath ? `${currentPath}/${node.slug}` : node.slug;
-      
+
       if (node.id === targetId) {
         return nodePath;
       }
-      
+
       if (node.children && node.children.length > 0) {
         const childPath = findPath(node.children, targetId, nodePath);
         if (childPath) return childPath;
@@ -508,17 +525,20 @@ export function getFullPathFromTree(tree: PageTreeNode[], pageId: string): strin
 /**
  * Update the full path for a page when only its slug changes
  * This is more efficient than rebuilding the entire tree
+ *
+ * TODO: Optimize further to batch update descendants in a single query
  */
-export async function updateFullPathForSlugChange(pageId: number, newSlug: string) {
+export async function updateFullPathForSlugChange(
+  pageId: number,
+  newSlug: string
+) {
   const [page] = await db
     .select()
     .from(pages)
     .where(eq(pages.id, pageId))
     .limit(1);
 
-  if (!page) {
-    return;
-  }
+  if (!page) throw new Error("Page not found");
 
   // Get the parent's full path (if exists)
   let parentFullPath = "";
@@ -528,7 +548,7 @@ export async function updateFullPathForSlugChange(pageId: number, newSlug: strin
       .from(pages)
       .where(eq(pages.id, page.parentId))
       .limit(1);
-    
+
     if (parent) {
       parentFullPath = parent.fullPath ? `${parent.fullPath}/` : "";
     }
@@ -536,7 +556,7 @@ export async function updateFullPathForSlugChange(pageId: number, newSlug: strin
 
   // Update the page's fullPath
   const newFullPath = `${parentFullPath}${newSlug}`;
-  
+
   await db
     .update(pages)
     .set({ fullPath: newFullPath })
@@ -544,22 +564,27 @@ export async function updateFullPathForSlugChange(pageId: number, newSlug: strin
 
   // Update all descendants by replacing the old path prefix with new path
   const oldFullPath = page.fullPath;
-  
+
   const descendants = await db
     .select()
     .from(pages)
     .where(like(pages.fullPath, `${oldFullPath}/%`));
 
-  for (const descendant of descendants) {
-    const newDescendantPath = descendant.fullPath.replace(
-      `${oldFullPath}/`,
-      `${newFullPath}/`
+  // Batch update all descendants
+  if (descendants.length > 0) {
+    const updates = descendants.map((descendant) =>
+      db
+        .update(pages)
+        .set({
+          fullPath: descendant.fullPath.replace(
+            `${oldFullPath}/`,
+            `${newFullPath}/`
+          ),
+        })
+        .where(eq(pages.id, descendant.id))
     );
-    
-    await db
-      .update(pages)
-      .set({ fullPath: newDescendantPath })
-      .where(eq(pages.id, descendant.id));
+
+    await db.batch(updates as any);
   }
 }
 
@@ -573,17 +598,17 @@ export async function updateFullPathsForTree(tree: PageTreeNode[]) {
   // Update pages sequentially to avoid SQLite locking issues
   let successCount = 0;
   let failureCount = 0;
-  
+
   for (const [pageId, fullPath] of pathMap.entries()) {
     try {
       const numericId = parseInt(pageId, 10);
-      
+
       const result = await db
         .update(pages)
         .set({ fullPath })
         .where(eq(pages.id, numericId))
         .returning();
-      
+
       if (result.length > 0) {
         successCount++;
       } else {
@@ -593,9 +618,11 @@ export async function updateFullPathsForTree(tree: PageTreeNode[]) {
       failureCount++;
     }
   }
-  
+
   if (failureCount > 0) {
-    throw new Error(`Failed to update ${failureCount} page(s) out of ${pathMap.size}`);
+    throw new Error(
+      `Failed to update ${failureCount} page(s) out of ${pathMap.size}`
+    );
   }
 
   return { successCount, failureCount };

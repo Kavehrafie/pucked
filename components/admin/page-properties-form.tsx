@@ -3,17 +3,13 @@
 import { useActionState, useEffect, useState, useRef } from "react";
 import { Button } from "@measured/puck";
 import { Trash2 } from "lucide-react";
-import {
-  updatePageAction,
-
-} from "@/app/actions";
+import { deletePageAction, updatePageAction } from "@/app/actions";
 import { Page } from "@/db/schema";
 import type { PageWithTranslations } from "@/types";
 import { useNotifications } from "@/contexts/notification-context";
 import { usePageTree } from "@/contexts/page-tree-context";
 import { usePageSelection } from "@/components/admin/page-selection-context";
 import { useFormRegistry } from "../../lib/form-actions";
-import { deletePageAction } from "@/app/actions/page";
 
 interface PagePropertiesFormProps {
   page: Page;
@@ -32,11 +28,11 @@ const initialState = {
         };
       }
     | undefined,
-  updatedPage: undefined as (Page & { fullPath?: string }) | undefined,
+  data: undefined as (Page & { fullPath?: string }) | undefined,
 };
 
 export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
-  const updatePageWithIdAction = updatePageAction.bind(null, page.id);
+  const updatePageWithIdAction = updatePageAction.bind(null, page.id)
   const [state, formAction] = useActionState(
     updatePageWithIdAction,
     initialState
@@ -98,31 +94,32 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
 
   // Handle successful update
   useEffect(() => {
-    if (state.success && state.updatedPage) {
-      showSuccess("Page updated successfully!");
-      updatePageInTree(state.updatedPage);
+    if (state.success && state.data) {
+      showSuccess(state.success);
+      updatePageInTree(state.data);
       // Update the selected page in context, preserving translations
-      const updatedPage = state.updatedPage;
       setSelectedPage((prev) => {
         const newPage: PageWithTranslations = {
-          id: updatedPage.id,
-          title: updatedPage.title,
-          slug: updatedPage.slug,
-          fullPath: updatedPage.fullPath,
-          isDraft: updatedPage.isDraft,
-          showOnMenu: updatedPage.showOnMenu,
-          parentId: updatedPage.parentId,
-          sortOrder: updatedPage.sortOrder,
+          id: state.data!.id,
+          title: state.data!.title,
+          slug: state.data!.slug,
+          fullPath: state.data!.fullPath,
+          isDraft: state.data!.isDraft,
+          showOnMenu: state.data!.showOnMenu,
+          parentId: state.data!.parentId,
+          sortOrder: state.data!.sortOrder,
           translations: prev?.translations,
         };
         return newPage;
       });
       // Update original page ref to the new values
-      originalPageRef.current = state.updatedPage;
+      originalPageRef.current = state.data;
+      // Reset form to new values
+      formRef.current?.reset();
     }
   }, [
     state.success,
-    state.updatedPage,
+    state.data,
     showSuccess,
     updatePageInTree,
     setSelectedPage,

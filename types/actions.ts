@@ -1,5 +1,5 @@
 
-export type FormResults<T> = {
+export type FormResults<T, U> = {
 	errors?: {
 		formErrors?: string[];
 		fieldErrors?: {
@@ -7,6 +7,7 @@ export type FormResults<T> = {
 		};
 	};
 	success?: string;
+	data?: U;
 };
 
 export type InvitationStatus = {

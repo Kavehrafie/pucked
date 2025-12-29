@@ -112,6 +112,7 @@ export type NewSession = typeof sessions.$inferInsert;
 export type Invitation = typeof invitations.$inferSelect;
 export type NewInvitation = typeof invitations.$inferInsert;
 export type Page = typeof pages.$inferSelect;
+export type PageInsert = typeof pages.$inferInsert;
 export type NewPage = typeof pages.$inferInsert;
 export type PageTranslation = typeof pageTranslations.$inferSelect;
 export type NewPageTranslation = typeof pageTranslations.$inferInsert;
