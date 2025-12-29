@@ -2,16 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { Notification, createNotification, NOTIFICATION_DURATIONS } from "@/lib/notifications";
-
-type NotificationContextType = {
-  notifications: Notification[];
-  showSuccess: (message: string, duration?: number) => void;
-  showError: (message: string, duration?: number) => void;
-  showWarning: (message: string, duration?: number) => void;
-  showInfo: (message: string, duration?: number) => void;
-  dismissNotification: (id: string) => void;
-  clearAll: () => void;
-};
+import { NotificationContextType } from "@/types/components";
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 

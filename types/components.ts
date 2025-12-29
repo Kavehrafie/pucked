@@ -7,6 +7,7 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import type { PageTranslationStatus } from "./database";
 import { FormResults } from "./actions";
+import { Notification } from "@/lib/notifications";
 
 /**
  * Props for admin sidebar right panel
@@ -166,4 +167,13 @@ export interface FormRegistryState {
   allErrors: Record<string, Record<string, string[]>>;
   isSubmitting: boolean;
 }
+export type NotificationContextType = {
+  notifications: Notification[];
+  showSuccess: (message: string, duration?: number) => void;
+  showError: (message: string, duration?: number) => void;
+  showWarning: (message: string, duration?: number) => void;
+  showInfo: (message: string, duration?: number) => void;
+  dismissNotification: (id: string) => void;
+  clearAll: () => void;
+};
 

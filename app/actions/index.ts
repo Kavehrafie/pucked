@@ -1,7 +1,5 @@
 "use server"
-import * as AuthActions from "./auth";
-import * as InvitationActions from "./invitations";
 
-export const  {checkInvitationStatus, submitInvitation} = InvitationActions
-export const {loginWithGitHub, logout} = AuthActions
-
+export * as AuthActions from "./auth";
+export * as InvitationActions from "./invitations";
+export * as PageActions from "./page";

@@ -39,8 +39,8 @@ export function createNotification(
  * Default durations for different notification types
  */
 export const NOTIFICATION_DURATIONS = {
-  success: 3000,
-  error: 5000,
-  warning: 4000,
-  info: 3000,
+  success: 1000,
+  error: 2000,
+  warning: 2000,
+  info: 1000,
 } as const;

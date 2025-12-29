@@ -3,48 +3,67 @@
 import { useActionState, useEffect, useState, useRef } from "react";
 import { Button } from "@measured/puck";
 import { Trash2 } from "lucide-react";
-import { updatePageAction, deletePageAction } from "@/app/actions";
+import {
+  updatePageAction,
+
+} from "@/app/actions";
 import { Page } from "@/db/schema";
 import type { PageWithTranslations } from "@/types";
 import { useNotifications } from "@/contexts/notification-context";
 import { usePageTree } from "@/contexts/page-tree-context";
 import { usePageSelection } from "@/components/admin/page-selection-context";
-import { useFormRegistry } from "./use-form-registry";
+import { useFormRegistry } from "../../lib/form-actions";
+import { deletePageAction } from "@/app/actions/page";
 
 interface PagePropertiesFormProps {
   page: Page;
 }
 
-
 const initialState = {
   success: undefined as string | undefined,
-  errors: undefined as {
-    formErrors?: string[];
-    fieldErrors?: {
-      title?: string[];
-      slug?: string[];
-      isDraft?: string[];
-      showOnMenu?: string[];
-    };
-  } | undefined,
-  updatedPage: undefined as (Page & { fullPath?: string }) | undefined
+  errors: undefined as
+    | {
+        formErrors?: string[];
+        fieldErrors?: {
+          title?: string[];
+          slug?: string[];
+          isDraft?: string[];
+          showOnMenu?: string[];
+        };
+      }
+    | undefined,
+  updatedPage: undefined as (Page & { fullPath?: string }) | undefined,
 };
 
 export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
-  const [state, formAction] = useActionState(updatePageAction as any, initialState);
-  const [deleteState, deleteFormAction] = useActionState(deletePageAction as any, initialState);
+  const [state, formAction] = useActionState(
+    updatePageAction as any,
+    initialState
+  );
+
+  const deletePageWithIdAction = deletePageAction.bind(null, page.id);
+  const [deleteState, deleteFormAction] = useActionState(
+    deletePageWithIdAction,
+    { }
+  );
+
   const { showSuccess, showError } = useNotifications();
   const { updatePageInTree, removePageFromTree } = usePageTree();
   const { setSelectedPage, clearSelection } = usePageSelection();
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [isDirty, setIsDirty] = useState(false);
-  
+
   // Store original page values to revert tree on validation errors
   const originalPageRef = useRef(page);
 
   const formRef = useRef<HTMLFormElement>(null);
-  
+
+  const confirmDelete = async (e: Event) => {
+    e.preventDefault();
+    window.confirm("Are you sure you want to delete this page?") &&
+      (await deletePageWithIdAction());
+  };
+
   useFormRegistry<{
     title?: string;
     slug?: string;
@@ -53,13 +72,14 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
   }>({
     formId: `page-properties-${page.id}`,
     isDirty,
-    isValid: !state.errors || (!state.errors.formErrors && !state.errors.fieldErrors),
+    isValid:
+      !state.errors || (!state.errors.formErrors && !state.errors.fieldErrors),
     errors: state.errors || {},
     submit: async () => {
       // Trigger native form submission
       formRef.current?.requestSubmit();
     },
-  })
+  });
 
   // Reset dirty state after successful submission
   useEffect(() => {
@@ -99,7 +119,13 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
       // Update original page ref to the new values
       originalPageRef.current = state.updatedPage;
     }
-  }, [state.success, state.updatedPage, showSuccess, updatePageInTree, setSelectedPage]);
+  }, [
+    state.success,
+    state.updatedPage,
+    showSuccess,
+    updatePageInTree,
+    setSelectedPage,
+  ]);
 
   // Revert tree to original values when validation fails
   useEffect(() => {
@@ -116,7 +142,13 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
       removePageFromTree(page.id);
       clearSelection();
     }
-  }, [deleteState.success, showSuccess, removePageFromTree, page.id, clearSelection]);
+  }, [
+    deleteState.success,
+    showSuccess,
+    removePageFromTree,
+    page.id,
+    clearSelection,
+  ]);
 
   // Handle form errors
   useEffect(() => {
@@ -127,7 +159,10 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
 
   // Handle delete errors
   useEffect(() => {
-    if (deleteState.errors?.formErrors && deleteState.errors.formErrors.length > 0) {
+    if (
+      deleteState.errors?.formErrors &&
+      deleteState.errors.formErrors.length > 0
+    ) {
       showError(deleteState.errors.formErrors[0]);
     }
   }, [deleteState.errors?.formErrors, showError]);
@@ -138,7 +173,10 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
       <div>
         <label
           className="block text-xs font-medium mb-1"
-          style={{ fontSize: "var(--puck-font-size-xs)", color: "var(--puck-color-grey-07)" }}
+          style={{
+            fontSize: "var(--puck-font-size-xs)",
+            color: "var(--puck-color-grey-07)",
+          }}
         >
           Page ID
         </label>
@@ -160,7 +198,10 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
       </div>
 
       {/* Title Form */}
-      <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: "16px" }} ref={formRef}
+      <form
+        action={formAction}
+        style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+        ref={formRef}
         onChange={() => setIsDirty(true)}
       >
         <input type="hidden" name="pageId" value={page.id} />
@@ -170,7 +211,10 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
           <label
             htmlFor="title"
             className="block text-xs font-medium mb-1"
-            style={{ fontSize: "var(--puck-font-size-xs)", color: "var(--puck-color-grey-02)" }}
+            style={{
+              fontSize: "var(--puck-font-size-xs)",
+              color: "var(--puck-color-grey-02)",
+            }}
           >
             Title
           </label>
@@ -200,7 +244,11 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
           {state.errors?.fieldErrors?.title && (
             <p
               className="text-xs mt-1"
-              style={{ fontSize: "var(--puck-font-size-xs)", color: "var(--puck-color-red-07)", marginTop: "4px" }}
+              style={{
+                fontSize: "var(--puck-font-size-xs)",
+                color: "var(--puck-color-red-07)",
+                marginTop: "4px",
+              }}
             >
               {state.errors.fieldErrors.title[0]}
             </p>
@@ -212,7 +260,10 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
           <label
             htmlFor="slug"
             className="block text-xs font-medium mb-1"
-            style={{ fontSize: "var(--puck-font-size-xs)", color: "var(--puck-color-grey-02)" }}
+            style={{
+              fontSize: "var(--puck-font-size-xs)",
+              color: "var(--puck-color-grey-02)",
+            }}
           >
             Slug
           </label>
@@ -238,14 +289,22 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
           {state.errors?.fieldErrors?.slug && (
             <p
               className="text-xs mt-1"
-              style={{ fontSize: "var(--puck-font-size-xs)", color: "var(--puck-color-red-07)", marginTop: "4px" }}
+              style={{
+                fontSize: "var(--puck-font-size-xs)",
+                color: "var(--puck-color-red-07)",
+                marginTop: "4px",
+              }}
             >
               {state.errors.fieldErrors.slug[0]}
             </p>
           )}
           <p
             className="text-xs mt-1"
-            style={{ fontSize: "11px", color: "var(--puck-color-grey-07)", marginTop: "4px" }}
+            style={{
+              fontSize: "11px",
+              color: "var(--puck-color-grey-07)",
+              marginTop: "4px",
+            }}
           >
             Lowercase letters, numbers, and hyphens only
           </p>
@@ -255,7 +314,10 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
         <div>
           <label
             className="flex items-center gap-2 cursor-pointer text-xs"
-            style={{ fontSize: "var(--puck-font-size-xs)", color: "var(--puck-color-grey-02)" }}
+            style={{
+              fontSize: "var(--puck-font-size-xs)",
+              color: "var(--puck-color-grey-02)",
+            }}
           >
             <input
               type="checkbox"
@@ -275,14 +337,24 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
           {state.errors?.fieldErrors?.isDraft && (
             <p
               className="text-xs mt-1"
-              style={{ fontSize: "var(--puck-font-size-xs)", color: "var(--puck-color-red-07)", marginTop: "4px", marginLeft: "24px" }}
+              style={{
+                fontSize: "var(--puck-font-size-xs)",
+                color: "var(--puck-color-red-07)",
+                marginTop: "4px",
+                marginLeft: "24px",
+              }}
             >
               {state.errors.fieldErrors.isDraft[0]}
             </p>
           )}
           <p
             className="text-xs mt-1"
-            style={{ fontSize: "11px", color: "var(--puck-color-grey-07)", marginTop: "4px", marginLeft: "24px" }}
+            style={{
+              fontSize: "11px",
+              color: "var(--puck-color-grey-07)",
+              marginTop: "4px",
+              marginLeft: "24px",
+            }}
           >
             Draft pages are not visible to visitors
           </p>
@@ -292,7 +364,10 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
         <div>
           <label
             className="flex items-center gap-2 cursor-pointer text-xs"
-            style={{ fontSize: "var(--puck-font-size-xs)", color: "var(--puck-color-grey-02)" }}
+            style={{
+              fontSize: "var(--puck-font-size-xs)",
+              color: "var(--puck-color-grey-02)",
+            }}
           >
             <input
               type="checkbox"
@@ -312,14 +387,24 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
           {state.errors?.fieldErrors?.showOnMenu && (
             <p
               className="text-xs mt-1"
-              style={{ fontSize: "var(--puck-font-size-xs)", color: "var(--puck-color-red-07)", marginTop: "4px", marginLeft: "24px" }}
+              style={{
+                fontSize: "var(--puck-font-size-xs)",
+                color: "var(--puck-color-red-07)",
+                marginTop: "4px",
+                marginLeft: "24px",
+              }}
             >
               {state.errors.fieldErrors.showOnMenu[0]}
             </p>
           )}
           <p
             className="text-xs mt-1"
-            style={{ fontSize: "11px", color: "var(--puck-color-grey-07)", marginTop: "4px", marginLeft: "24px" }}
+            style={{
+              fontSize: "11px",
+              color: "var(--puck-color-grey-07)",
+              marginTop: "4px",
+              marginLeft: "24px",
+            }}
           >
             Display this page in the site navigation
           </p>
@@ -338,7 +423,10 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
           >
             <p
               className="text-xs"
-              style={{ fontSize: "var(--puck-font-size-xs)", color: "var(--puck-color-red-07)" }}
+              style={{
+                fontSize: "var(--puck-font-size-xs)",
+                color: "var(--puck-color-red-07)",
+              }}
             >
               {state.errors.formErrors[0]}
             </p>
@@ -346,7 +434,10 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
         )}
 
         {/* Actions */}
-        <div className="flex gap-2 pt-2" style={{ display: "flex", gap: "8px", paddingTop: "8px" }}>
+        <div
+          className="flex gap-2 pt-2"
+          style={{ display: "flex", gap: "8px", paddingTop: "8px" }}
+        >
           <Button type="submit" variant="primary" fullWidth>
             Save Changes
           </Button>
@@ -357,33 +448,11 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
       <form action={deleteFormAction} style={{ marginTop: "16px" }}>
         <input type="hidden" name="pageId" value={page.id} />
 
-        {deleteState.errors?.formErrors && deleteState.errors.formErrors.length > 0 && (
-          <div
-            className="p-3 rounded-lg mb-2"
-            style={{
-              padding: "12px",
-              borderRadius: "8px",
-              background: "var(--puck-color-red-01)",
-              border: "1px solid var(--puck-color-red-04)",
-              marginBottom: "8px",
-            }}
-          >
-            <p
-              className="text-xs"
-              style={{ fontSize: "var(--puck-font-size-xs)", color: "var(--puck-color-red-07)" }}
-            >
-              {deleteState.errors.formErrors[0]}
-            </p>
-          </div>
-        )}
-
         <Button
           type="button"
-          onClick={() => setShowDeleteConfirm(true)}
+          onClick={confirmDelete}
           variant="secondary"
           fullWidth
-    
-      
         >
           <Trash2 className="w-4 h-4 mr-2" />
           Delete Page
@@ -391,103 +460,23 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
       </form>
 
       {/* Confirmation Dialog */}
-      {showDeleteConfirm && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-          onClick={() => setShowDeleteConfirm(false)}
-        >
-          <div
-            style={{
-              background: "var(--puck-color-white)",
-              padding: "24px",
-              borderRadius: "8px",
-              maxWidth: "400px",
-              width: "90%",
-              border: "1px solid var(--puck-color-grey-09)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3
-              style={{
-                fontSize: "var(--puck-font-size-sm)",
-                fontWeight: 600,
-                color: "var(--puck-color-grey-01)",
-                marginBottom: "12px",
-              }}
-            >
-              Delete Page
-            </h3>
-            <p
-              style={{
-                fontSize: "var(--puck-font-size-xs)",
-                color: "var(--puck-color-grey-02)",
-                marginBottom: "24px",
-                lineHeight: "1.5",
-              }}
-            >
-              Are you sure you want to delete "{page.title}"? This action cannot be undone.
-            </p>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setShowDeleteConfirm(false)}
-      
-              >
-                Cancel
-              </Button>
-              <form action={deleteFormAction} style={{ flex: 1 }}>
-                <input type="hidden" name="pageId" value={page.id} />
-                <Button
-                  type="submit"
-                  variant="secondary"
-                  fullWidth
-          
-                >
-                  Delete
-                </Button>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Divider */}
-      <div style={{ borderTop: "1px solid var(--puck-color-grey-09)", margin: "8px 0" }} />
+      <div
+        style={{
+          borderTop: "1px solid var(--puck-color-grey-09)",
+          margin: "8px 0",
+        }}
+      />
 
       {/* SEO Metadata Section */}
       <div className="mb-16">
-        <h3
-          className="text-xs font-semibold mb-3"
-          style={{ fontSize: "var(--puck-font-size-xs)", fontWeight: 500, color: "var(--puck-color-grey-02)", marginBottom: "12px" }}
-        >
+        <h3 className="text-xs font-semibold mb-3 text-gray-500">
           SEO Metadata
         </h3>
-        <p
-          className="text-xs mb-4"
-          style={{ fontSize: "11px", color: "var(--puck-color-grey-07)", marginBottom: "16px" }}
-        >
+        <p className="text-xs mb-4">
           SEO settings are managed per locale in the page editor.
         </p>
-        <Button
-          href={`/admin/pages/${page.id}`}
-          variant="secondary"
-          fullWidth
-          disabled
-        >
-          Edit Content & SEO 
-        </Button>
       </div>
     </div>
   );
