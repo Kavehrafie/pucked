@@ -13,6 +13,15 @@ interface UseFormRegistryOptions<T> {
     submit: () => Promise<void>;
 }
 
+// Helper to deep compare errors
+function errorsEqual(a: any, b: any): boolean {
+    if (a === b) return true;
+    if (!a || !b) return a === b;
+    const aStr = JSON.stringify(a);
+    const bStr = JSON.stringify(b);
+    return aStr === bStr;
+}
+
 export function useFormRegistry<T>({
     formId,
     isDirty,
@@ -20,12 +29,16 @@ export function useFormRegistry<T>({
     errors,
     submit,
 }: UseFormRegistryOptions<T>) {
-    const { registerForm, updateForm } = useAdminLayout();  
+    const { registerForm, updateForm } = useAdminLayout();
     const isRegitered = useRef(false);
-    
+
+    // Store submit in a ref to maintain stable reference
+    const submitRef = useRef(submit);
+    submitRef.current = submit;
+
     // Track previous values to detect changes
     const prevValuesRef = useRef({ isDirty, isValid, errors });
-    
+
     useEffect(() => {
         if (!isRegitered.current) {
             // Register with initial values
@@ -34,11 +47,11 @@ export function useFormRegistry<T>({
                 isDirty,
                 isValid,
                 errors,
-                submit,
+                submit: () => submitRef.current(),
             });
             isRegitered.current = true;
             prevValuesRef.current = { isDirty, isValid, errors };
-            
+
             return () => {
                 cleanup();
                 isRegitered.current = false;
@@ -50,18 +63,22 @@ export function useFormRegistry<T>({
     useEffect(() => {
         if (isRegitered.current) {
             const prev = prevValuesRef.current;
-            
-            // Check if values actually changed
-            if (prev.isDirty !== isDirty || prev.isValid !== isValid || prev.errors !== errors) {
-                console.log('[useFormRegistry] Updating form:', formId, { isDirty, isValid });
+
+            // Check if values actually changed (using deep comparison for errors)
+            const dirtyChanged = prev.isDirty !== isDirty;
+            const validChanged = prev.isValid !== isValid;
+            const errorsChanged = !errorsEqual(prev.errors, errors);
+
+            if (dirtyChanged || validChanged || errorsChanged) {
+                console.log('[useFormRegistry] Updating form:', formId, { isDirty, isValid, errorsChanged });
                 updateForm<T>(formId, {
                     isDirty,
                     isValid,
                     errors,
-                    submit,
+                    submit: () => submitRef.current(),
                 });
                 prevValuesRef.current = { isDirty, isValid, errors };
             }
         }
-    }, [formId, isDirty, isValid, errors, submit, updateForm]);
+    }, [formId, isDirty, isValid, errors, updateForm]);
 }

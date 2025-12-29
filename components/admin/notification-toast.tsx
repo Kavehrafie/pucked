@@ -40,10 +40,10 @@ function NotificationItem({ notification, onDismiss }: NotificationItemProps) {
   };
 
   const styles = {
-    success: "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400",
-    error: "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400",
-    warning: "bg-yellow-500/10 border-yellow-500/20 text-yellow-600 dark:text-yellow-400",
-    info: "bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400",
+    success: "bg-green-100 border-green-500/20 text-green-600 dark:text-green-400",
+    error: "bg-red-100 border-red-500/20 text-red-600 dark:text-red-400",
+    warning: "bg-yellow-100 border-yellow-500/20 text-yellow-600 dark:text-yellow-400",
+    info: "bg-blue-100 border-blue-500/20 text-blue-600 dark:text-blue-400",
   };
 
   return (
@@ -53,7 +53,7 @@ function NotificationItem({ notification, onDismiss }: NotificationItemProps) {
         styles[notification.type]
       )}
     >
-      <div className="flex-shrink-0 mt-0.5">
+      <div className="shrink-0 mt-0.5">
         {icons[notification.type]}
       </div>
       <div className="flex-1 text-sm font-medium">
@@ -61,7 +61,7 @@ function NotificationItem({ notification, onDismiss }: NotificationItemProps) {
       </div>
       <button
         onClick={onDismiss}
-        className="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity"
+        className="shrink-0 opacity-70 hover:opacity-100 transition-opacity"
         aria-label="Dismiss notification"
       >
         <X className="h-4 w-4" />

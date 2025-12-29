@@ -12,6 +12,14 @@ import type { User, Session, Invitation, Page, PageTranslation, SiteSetting } fr
 export type { User, Session, Invitation, Page, PageTranslation, SiteSetting };
 
 /**
+ * Extended Page type with translations attached
+ * Used in contexts where page data includes related translations
+ */
+export type PageWithTranslations = Page & {
+  translations?: PageTranslation[];
+};
+
+/**
  * Page translation status for UI display
  */
 export interface PageTranslationStatus {

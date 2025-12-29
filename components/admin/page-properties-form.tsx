@@ -5,6 +5,7 @@ import { Button } from "@measured/puck";
 import { Trash2 } from "lucide-react";
 import { updatePageAction, deletePageAction } from "@/app/actions";
 import { Page } from "@/db/schema";
+import type { PageWithTranslations } from "@/types";
 import { useNotifications } from "@/contexts/notification-context";
 import { usePageTree } from "@/contexts/page-tree-context";
 import { usePageSelection } from "@/components/admin/page-selection-context";
@@ -25,7 +26,8 @@ const initialState = {
       isDraft?: string[];
       showOnMenu?: string[];
     };
-  } | undefined
+  } | undefined,
+  updatedPage: undefined as (Page & { fullPath?: string }) | undefined
 };
 
 export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
@@ -37,6 +39,9 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [isDirty, setIsDirty] = useState(false);
+  
+  // Store original page values to revert tree on validation errors
+  const originalPageRef = useRef(page);
 
   const formRef = useRef<HTMLFormElement>(null);
   
@@ -48,7 +53,7 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
   }>({
     formId: `page-properties-${page.id}`,
     isDirty,
-    isValid: !state.errors?.formErrors && !state.errors?.fieldErrors,
+    isValid: !state.errors || (!state.errors.formErrors && !state.errors.fieldErrors),
     errors: state.errors || {},
     submit: async () => {
       // Trigger native form submission
@@ -63,17 +68,46 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
     }
   }, [state.success]);
 
-
+  // Reset dirty state when validation fails (form reverts to default)
+  useEffect(() => {
+    if (state.errors && (state.errors.formErrors || state.errors.fieldErrors)) {
+      setIsDirty(false);
+    }
+  }, [state.errors]);
 
   // Handle successful update
   useEffect(() => {
     if (state.success && state.updatedPage) {
       showSuccess("Page updated successfully!");
       updatePageInTree(state.updatedPage);
-      // Update the selected page in context
-      setSelectedPage(state.updatedPage);
+      // Update the selected page in context, preserving translations
+      const updatedPage = state.updatedPage;
+      setSelectedPage((prev) => {
+        const newPage: PageWithTranslations = {
+          id: updatedPage.id,
+          title: updatedPage.title,
+          slug: updatedPage.slug,
+          fullPath: updatedPage.fullPath,
+          isDraft: updatedPage.isDraft,
+          showOnMenu: updatedPage.showOnMenu,
+          parentId: updatedPage.parentId,
+          sortOrder: updatedPage.sortOrder,
+          translations: prev?.translations,
+        };
+        return newPage;
+      });
+      // Update original page ref to the new values
+      originalPageRef.current = state.updatedPage;
     }
   }, [state.success, state.updatedPage, showSuccess, updatePageInTree, setSelectedPage]);
+
+  // Revert tree to original values when validation fails
+  useEffect(() => {
+    if (state.errors && (state.errors.formErrors || state.errors.fieldErrors)) {
+      // Revert the tree to the original page values
+      updatePageInTree(originalPageRef.current);
+    }
+  }, [state.errors, updatePageInTree]);
 
   // Handle successful delete
   useEffect(() => {
@@ -146,10 +180,9 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
             type="text"
             defaultValue={page.title}
             placeholder="Enter page title"
-            required
             onChange={(e) => {
               setIsDirty(true);
-              // Update tree title in real-time
+              // Update tree title in real-time for better UX
               updatePageInTree({ ...page, title: e.target.value });
             }}
             style={{
@@ -190,7 +223,6 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
             defaultValue={page.slug}
             placeholder="page-url-slug"
             required
-            pattern="[a-z0-9-]+"
             style={{
               width: "100%",
               padding: "8px 12px",
@@ -350,14 +382,8 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
           onClick={() => setShowDeleteConfirm(true)}
           variant="secondary"
           fullWidth
-          style={{
-            background: "var(--puck-color-red-09)",
-            color: "var(--puck-color-white)",
-            border: "1px solid var(--puck-color-red-09)",
-          }}
-          hoverStyle={{
-            background: "var(--puck-color-red-10)",
-          }}
+    
+      
         >
           <Trash2 className="w-4 h-4 mr-2" />
           Delete Page

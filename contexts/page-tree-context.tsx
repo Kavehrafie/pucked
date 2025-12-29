@@ -49,6 +49,8 @@ export function PageTreeProvider({ children, initialTree }: { children: ReactNod
               slug: page.slug,
               isDraft: page.isDraft,
               showOnMenu: page.showOnMenu,
+              // Preserve translations if they exist
+              ...(node.translations && { translations: node.translations }),
             };
           }
           if (node.children) {

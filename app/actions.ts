@@ -14,11 +14,14 @@ import { requireAuth } from "@/lib/route-guard";
 
 type FormState = {
   errors?: {
-    title?: string[]
-    slug?: string[]
-    isDraft?: string[]
-    parentId?: string[]
-    _form?: string[]
+    formErrors?: string[]
+    fieldErrors?: {
+      title?: string[]
+      slug?: string[]
+      isDraft?: string[]
+      showOnMenu?: string[]
+      parentId?: string[]
+    }
   }
   success?: boolean
   updatedPage?: {
@@ -414,8 +417,8 @@ export async function savePageContent(
 
 const updatePageSchema = z.object({
 	pageId: z.string().transform((val) => parseInt(val, 10)),
-	title: z.string().min(1).max(200),
-	slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
+	title: z.string().min(4).max(200),
+	slug: z.string().min(4).max(200).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
 	isDraft: z.union([z.string(), z.null()]).optional().transform((val) => val === "on"),
 	showOnMenu: z.union([z.string(), z.null()]).optional().transform((val) => val === "on"),
 });
@@ -436,7 +439,7 @@ export async function updatePageAction(prevState: FormState, formData: FormData)
 
 	if (!validatedFields.success) {
 		return {
-			errors: validatedFields.error.flatten().fieldErrors,
+			errors: z.flattenError(validatedFields.error),
 		};
 	}
 

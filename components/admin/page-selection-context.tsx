@@ -1,11 +1,11 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode } from "react";
-import { Page } from "@/db/schema";
+import type { PageWithTranslations } from "@/types";
 
 type PageSelectionState = {
-  selectedPage: Page | null;
-  setSelectedPage: (page: Page | null) => void;
+  selectedPage: PageWithTranslations | null;
+  setSelectedPage: (page: PageWithTranslations | null | ((prev: PageWithTranslations | null) => PageWithTranslations | null)) => void;
   clearSelection: () => void;
 };
 
