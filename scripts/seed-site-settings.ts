@@ -1,9 +1,10 @@
-import { db } from "../db";
+import { getDb } from "../db";
 import { siteSettings } from "../db/schema";
 import { eq } from "drizzle-orm";
 
 async function seedSiteSettings() {
   console.log("🌱 Seeding site settings...");
+  const db = getDb();
 
   const defaultSettings = [
     {

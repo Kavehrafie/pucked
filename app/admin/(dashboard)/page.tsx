@@ -9,6 +9,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-6 space-y-6 @container mb-20">
+      <h1 className="text-xl">Admin Dashboard</h1>
       <FormSection
         heading={
           <HeadingSection

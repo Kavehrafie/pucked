@@ -3,8 +3,9 @@ import { getTextDirection } from "@/lib/text-direction";
 import { RTLTextInput } from "@/components/admin/rtl-text-input";
 import { Link as LinkIcon, ExternalLink } from "lucide-react";
 import { usePageTree } from "@/contexts/page-tree-context";
-import type { PageTreeNode } from "@/lib/page";
-import { memo, useCallback } from "react";
+
+import { memo } from "react";
+import type { PageTreeNode } from "@/types";
 
 // Flatten pages tree into select options
 function flattenPagesTree(nodes: PageTreeNode[], depth = 0): Array<{ label: string; value: string }> {

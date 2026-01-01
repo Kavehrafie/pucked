@@ -5,9 +5,9 @@ async function main() {
   console.log("Running migrations...");
 
   const { migrate } = await import("drizzle-orm/libsql/migrator");
-  const { db } = await import("../db");
+  const { getDb } = await import("../db");
 
-  await migrate(db, { migrationsFolder: "./migrations" });
+  await migrate(getDb(), { migrationsFolder: "./migrations" });
   console.log("Migrations completed!");
   process.exit(0);
 }

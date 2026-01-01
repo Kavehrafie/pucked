@@ -89,7 +89,7 @@ export function SidebarTranslations({ translations = [] }: SidebarTranslationsPr
                   </span>
                 </div>
                 <Link href={`/admin/pages/${translation.locale}/${pageSlug}/edit`}>
-                  <Button variant="secondary" size="small">
+                  <Button variant="secondary" size="sm">
                     Edit
                   </Button>
                 </Link>
@@ -115,7 +115,7 @@ export function SidebarTranslations({ translations = [] }: SidebarTranslationsPr
                 href={`/admin/pages/${locale}/${pageSlug}/edit`}
                 style={{ display: "block", width: "100%" }}
               >
-                <Button variant="secondary" size="small" fullWidth>
+                <Button variant="secondary" size="sm" fullWidth>
                   <div className="flex items-center gap-2">
                     <Plus className="w-4 h-4" />
                     {locale === "en" ? "English" : "Farsi"}

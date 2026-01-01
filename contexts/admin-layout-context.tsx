@@ -128,9 +128,9 @@ export function AdminLayoutProvider({ children }: { children: ReactNode }) {
 
   const hasErrors = useMemo(() => 
     Array.from(forms.values()).some((f) => {
-      const isValid = typeof f.isValid === 'function' ? f.isValid() : f.isValid;
+
       const errors = typeof f.errors === 'function' ? f.errors() : f.errors;
-      return !isValid || Object.keys(errors || {}).length > 0;
+      return !f.isValid || Object.keys(errors || {}).length > 0;
     }), [forms]);
 
   return (

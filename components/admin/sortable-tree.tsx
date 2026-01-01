@@ -25,10 +25,11 @@ import { ArrowRight, ArrowLeft, X } from "lucide-react";
 import type { UniqueIdentifier } from "@dnd-kit/core";
 import type { TreeItem, FlattenedItem } from "@/types/navigation";
 import { Badge } from "../ui/badge";
-import type { PageTreeNode } from "@/types/database";
+import type { PageTranslationStatus, PageTreeNode } from "@/types/database";
 import { usePageSelection } from "@/components/admin/page-selection-context";
 import { usePageTree } from "@/contexts/page-tree-context";
 import { Page } from "@/db/schema";
+import { string } from "zod";
 
 interface SortableTreeProps {
   items: PageTreeNode[];
@@ -73,7 +74,7 @@ function toPageTreeNode(
 // Flatten tree items - only include visible items (respect collapsed state)
 function flattenTree(
   items: PageTreeNode[],
-  parentId: UniqueIdentifier | null = null,
+  parentId: string | null = null,
   depth = 0
 ): FlattenedItem[] {
   return items.reduce<FlattenedItem[]>((acc, item, index) => {
@@ -485,7 +486,7 @@ export function SortableTree({
                   onRemove={removable ? () => handleRemove(id) : undefined}
                   onClick={() => {
                     // Create a Page object from the node data
-                    const page: Page & { translations?: typeof node.translations } = {
+                    const page: Omit<Page & { translations?: typeof node.translations }, "fullPath"> = {
                       id: parseInt(node.id, 10),
                       title: node.title,
                       slug: node.slug,

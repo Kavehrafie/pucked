@@ -366,7 +366,7 @@ export default function TipTapEditor({
     // Only update if content is different from what we last sent
     if (content !== lastContentRef.current) {
       isUpdatingRef.current = true;
-      editor.commands.setContent(content, false);
+      editor.commands.setContent(content);
       lastContentRef.current = content;
 
       // Reset flag after update

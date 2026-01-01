@@ -10,19 +10,29 @@ export type ComponentProps = {
     level?: 1 | 2 | 3 | 4 | 5 | 6;
   };
   GridBlock: {
+    content: React.ComponentType<any>;
     columns?: 1 | 2 | 3 | 4;
     gap?: number;
   };
   LinkBlock: {
-    href: string;
+    linkType: "internal" | "external";
+    href?: string;
+    pageId?: string;
     label: string;
-    openInNewTab?: boolean;
+    openInNewTab?: boolean | string;
   };
   TipTapBlock: {
     content: string;
   };
   SpacerBlock: {
     height: number;
+  };
+  ImageBlock: {
+    url?: string;
+    alt?: string;
+    caption?: string;
+    width?: number;
+    height?: number;
   };
 };
 

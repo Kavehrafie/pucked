@@ -3,9 +3,9 @@ import { TokenBucket } from "./rate-limit";
 
 export const globalBucket = new TokenBucket<string>(100, 1);
 
-export function globalGETRateLimit(): boolean {
+export async function globalGETRateLimit(): Promise<boolean> {
 	// Note: Assumes X-Forwarded-For will always be defined.
-	const clientIP = headers().get("X-Forwarded-For");
+	const clientIP = (await headers()).get("X-Forwarded-For");
 	if (clientIP === null) {
 		return true;
 	}
@@ -13,9 +13,9 @@ export function globalGETRateLimit(): boolean {
 }
 
 
-export function globalPOSTRateLimit(): boolean {
+export async function globalPOSTRateLimit(): Promise<boolean> {
 	// Note: Assumes X-Forwarded-For will always be defined.
-	const clientIP = headers().get("X-Forwarded-For");
+	const clientIP = (await headers()).get("X-Forwarded-For");
 	if (clientIP === null) {
 		return true;
 	}

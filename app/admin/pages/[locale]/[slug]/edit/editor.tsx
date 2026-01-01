@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import type { ComponentProps, RootProps } from "@/types/puck";
-import type { PageTreeNode } from "@/lib/page";
+import type { PageTreeNode } from "@/types";
 import { PageTreeProvider } from "@/contexts/page-tree-context";
 import { Button } from "@/components/ui/button";
 

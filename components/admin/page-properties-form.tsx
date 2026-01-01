@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Trash2, Globe, Eye } from "lucide-react";
+import { Trash2, Globe } from "lucide-react";
 import Link from "next/link";
 import { deletePageAction, updatePageAction } from "@/app/_actions";
 import { Page } from "@/db/schema";
@@ -16,7 +16,7 @@ import { usePageSelection } from "@/components/admin/page-selection-context";
 import { useFormRegistry } from "../../lib/form-actions";
 
 interface PagePropertiesFormProps {
-  page: Page;
+  page:  PageWithTranslations;
 }
 
 const initialState = {
@@ -265,7 +265,7 @@ export function PagePropertiesForm({ page }: PagePropertiesFormProps) {
                       </span>
                     </div>
                     <Link href={`/admin/pages/${translation.locale}/${page.slug}/edit`}>
-                      <Button variant="secondary" size="small">
+                      <Button variant="secondary" size="sm">
                         Edit
                       </Button>
                     </Link>

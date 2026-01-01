@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode } from "react";
-import type { PageWithTranslations } from "@/types";
+import type { Page, PageWithTranslations } from "@/types";
 
 type PageSelectionState = {
   selectedPage: PageWithTranslations | null;

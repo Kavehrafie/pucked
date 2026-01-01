@@ -1,6 +1,7 @@
 import type { ComponentConfig } from "@measured/puck";
 import { getTextDirection } from "@/lib/text-direction";
 import { RTLTextInput } from "@/components/admin/rtl-text-input";
+import { ReactNode } from "react";
 
 export const HeadingBlock: ComponentConfig<{
   title: string;
@@ -38,7 +39,7 @@ export const HeadingBlock: ComponentConfig<{
     level: 2,
   },
   render: ({ title, level }) => {
-    const Tag = `h${level || 2}` as keyof JSX.IntrinsicElements;
+    const Tag = `h${level || 2}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
     const dir = getTextDirection(title);
     return <Tag dir={dir}>{title}</Tag>;
   },

@@ -116,12 +116,12 @@ export type AdminLayoutState = {
  * Form registration for unified header save button
  * @template T Form Schema type
  */
-export interface RegisteredForm<T = Record<string, any>> {
+export interface RegisteredForm<T = Record<string, any>, U = any> {
   id: string;
   isDirty: boolean;
   isValid: boolean;
   submit: () => Promise<void>;
-  errors: FormResults<T>['errors'];
+  errors?: any;
   successMessage?: string;
 }
 

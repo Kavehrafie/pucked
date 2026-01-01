@@ -1,6 +1,7 @@
 import type { ComponentConfig } from "@measured/puck";
 
 export const GridBlock: ComponentConfig<{
+  content: React.ComponentType<any>;
   columns?: 1 | 2 | 3 | 4;
   gap?: number;
 }> = {
@@ -22,6 +23,7 @@ export const GridBlock: ComponentConfig<{
     },
   },
   defaultProps: {
+    content: () => null,
     columns: 2,
     gap: 16,
   },
