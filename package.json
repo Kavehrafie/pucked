@@ -14,7 +14,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "create-invitation": "node scripts/create-invitation.js",
-    "seed-site-settings": "node scripts/seed-site-settings.js"
+    "seed-site-settings": "node scripts/seed-site-settings.js",
+    "seed-site-settings-prod": "tsx -r dotenv/config scripts/seed-site-settings.ts dotenv_config_path=.env",
+    "create-invitation-prod": "tsx -r dotenv/config scripts/create-invitation.ts dotenv_config_path=.env"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
