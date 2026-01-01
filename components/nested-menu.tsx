@@ -188,13 +188,13 @@ function MobileMenuItem({
 
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <Link
           href={item.fullPath || `/${item.slug}`}
           onClick={() => {
             onItemClick?.();
           }}
-          className="flex-1 text-lg font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
+          className="flex-1 text-base font-medium hover:text-primary transition-colors py-2 px-2 rounded-md hover:bg-accent"
         >
           {item.title}
         </Link>
@@ -203,8 +203,7 @@ function MobileMenuItem({
             onClick={onToggle}
             className={cn(
               "p-2 rounded-md hover:bg-accent hover:text-accent-foreground",
-              "transition-colors focus:outline-none focus:ring-2 focus:ring-ring",
-              "rtl:rotate-180"
+              "transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
             )}
             aria-label={isOpen ? "Collapse" : "Expand"}
           >
@@ -218,7 +217,7 @@ function MobileMenuItem({
         )}
       </div>
       {hasChildren && isOpen && (
-        <div className="pl-4 space-y-1 border-l-2 border-muted rtl:border-l-0 rtl:border-r-2">
+        <div className="pl-4 rtl:pl-0 rtl:pr-4 space-y-1 border-l-2 rtl:border-l-0 rtl:border-r-2 border-muted ml-2 rtl:ml-0 rtl:mr-2">
           {item.children?.map((child) => (
             <MobileMenuItem
               key={child.id}

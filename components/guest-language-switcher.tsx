@@ -12,11 +12,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const locales = [
-  { code: "en", label: "English", flag: "🇺🇸" },
-  { code: "fa", label: "فارسی", flag: "🇮🇷" },
+  { code: "en", label: "English" },
+  { code: "fa", label: "فارسی" },
 ] as const;
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ variant = "dropdown" }: { variant?: "dropdown" | "inline" }) {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
@@ -27,11 +27,30 @@ export function LanguageSwitcher() {
     router.replace(pathname, { locale: newLocale });
   };
 
+  if (variant === "inline") {
+    return (
+      <div className="flex gap-2">
+        {locales.map((loc) => (
+          <Button
+            key={loc.code}
+            variant={loc.code === locale ? "default" : "ghost"}
+            size="sm"
+            onClick={() => switchLocale(loc.code)}
+            className="flex-1"
+          >
+            {loc.label}
+          </Button>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Switch language">
-          <Languages className="h-5 w-5" />
+        <Button variant="ghost" size="sm" className="gap-2">
+          <Languages className="h-4 w-4" />
+          <span>{currentLocale?.label}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -41,7 +60,6 @@ export function LanguageSwitcher() {
             onClick={() => switchLocale(loc.code)}
             className={loc.code === locale ? "bg-accent" : ""}
           >
-            <span className="mr-2 rtl:ml-2 rtl:mr-0">{loc.flag}</span>
             {loc.label}
           </DropdownMenuItem>
         ))}

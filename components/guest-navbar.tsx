@@ -11,9 +11,17 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Menu, X, Search, Pencil } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Separator } from "@/components/ui/separator";
+import { Menu, X, Search, Pencil, ChevronRight } from "lucide-react";
 import { LanguageSwitcher } from "./guest-language-switcher";
 import { NestedMenu } from "./nested-menu";
+import { MobileMenu } from "./mobile-menu";
 import { searchPages, type SearchResult } from "@/app/_actions";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
@@ -193,55 +201,88 @@ export function GuestNavbar({ menuItems, siteName, logoUrl, isEditModeOn }: Gues
                   {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                 </Button>
               </SheetTrigger>
-              <SheetContent
-                side={isRTL ? "right" : "left"}
-                className="w-[300px] sm:w-[400px]"
-              >
-                <SheetTitle className="sr-only">{t("menu")}</SheetTitle>
-                <div className="flex flex-col space-y-4 mt-8">
-                  {/* Mobile Search Input */}
-                  <InputGroup>
-                    <InputGroupInput
-                      placeholder={tSearch("placeholder")}
-                      value={searchQuery}
-                      onChange={handleSearchChange}
-                    />
-                    <InputGroupAddon>
-                      <Search className="h-4 w-4" />
-                    </InputGroupAddon>
-                  </InputGroup>
+              <SheetContent className="w-[85vw] max-w-sm p-0">
+                <div className="flex flex-col h-full">
+                  {/* Header with Search */}
+                  <div className="p-6 pb-4 pt-16">
+                    <SheetTitle className="text-lg font-semibold mb-4">{t("menu")}</SheetTitle>
+                    <div className="space-y-3">
+                      <InputGroup>
+                        <InputGroupInput
+                          placeholder={tSearch("placeholder")}
+                          value={searchQuery}
+                          onChange={handleSearchChange}
+                          onFocus={() => searchQuery.trim().length >= 2 && setShowSearchResults(true)}
+                          className="h-10"
+                        />
+                        {isSearching && (
+                          <InputGroupAddon align="inline-end">
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                          </InputGroupAddon>
+                        )}
+                        <InputGroupAddon>
+                          <Search className="h-4 w-4" />
+                        </InputGroupAddon>
+                      </InputGroup>
 
-                  {/* Mobile Search Results */}
-                  {showSearchResults && searchQuery.trim().length >= 2 && searchResults.length > 0 && (
-                    <div className="border rounded-lg p-2 max-h-64 overflow-y-auto">
-                      {searchResults.map((result) => (
-                        <Link
-                          key={result.id}
-                          href={`/${normalizeSlug(result.fullPath)}`}
-                          onClick={() => {
-                            setSearchQuery("");
-                            setSearchResults([]);
-                            setShowSearchResults(false);
-                            setIsOpen(false);
-                          }}
-                          className="flex flex-col items-start gap-1 rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-                        >
-                          <span className="font-medium">{result.title}</span>
-                          {result.excerpt && (
-                            <p className="line-clamp-2 text-xs text-muted-foreground">
-                              {result.excerpt}
-                            </p>
+                      {/* Mobile Search Results */}
+                      {showSearchResults && searchQuery.trim().length >= 2 && (
+                        <div className="border rounded-lg bg-card max-h-60 overflow-y-auto">
+                          {isSearching ? (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                              {tSearch("searching")}
+                            </div>
+                          ) : searchResults.length === 0 ? (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                              {tSearch("noResults", { query: searchQuery })}
+                            </div>
+                          ) : (
+                            <div className="py-2">
+                              {searchResults.map((result) => (
+                                <Link
+                                  key={result.id}
+                                  href={`/${normalizeSlug(result.fullPath)}`}
+                                  onClick={() => {
+                                    setSearchQuery("");
+                                    setSearchResults([]);
+                                    setShowSearchResults(false);
+                                    setIsOpen(false);
+                                  }}
+                                  className="flex items-start gap-3 px-4 py-3 hover:bg-accent transition-colors"
+                                >
+                                  <Search className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm">{result.title}</p>
+                                    {result.excerpt && (
+                                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                        {result.excerpt}
+                                      </p>
+                                    )}
+                                  </div>
+                                </Link>
+                              ))}
+                            </div>
                           )}
-                        </Link>
-                      ))}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
 
-                  <NestedMenu
-                    items={menuItems}
-                    isMobile={true}
-                    onItemClick={() => setIsOpen(false)}
-                  />
+                  <Separator />
+
+                  {/* Navigation Menu */}
+                  <div className="flex-1 overflow-y-auto">
+                    <nav className="p-6 pt-4">
+                      <MobileMenu items={menuItems} onItemClick={() => setIsOpen(false)} />
+                    </nav>
+                  </div>
+
+                  <Separator />
+
+                  {/* Language Switcher in Footer */}
+                  <div className="p-6 pt-4">
+                    <LanguageSwitcher variant="inline" />
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>

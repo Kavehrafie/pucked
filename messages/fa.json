@@ -16,6 +16,7 @@
   "Search": {
     "title": "جستجو",
     "placeholder": "جستجو در صفحات...",
+    "searching": "در حال جستجو...",
     "noResults": "صفحه‌ای با نام \"{query}\" یافت نشد",
     "minChars": "حداقل ۲ کاراکتر وارد کنید",
     "resultsFound": "{count} نتیجه یافت شد",

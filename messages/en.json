@@ -16,6 +16,7 @@
   "Search": {
     "title": "Search",
     "placeholder": "Search pages...",
+    "searching": "Searching...",
     "noResults": "No pages found for \"{query}\"",
     "minChars": "Type at least 2 characters to search",
     "resultsFound": "{count} {count, plural, one {result} other {results}} found",
