@@ -36,7 +36,7 @@ export function NestedMenu({ items, isMobile = false, onItemClick }: NestedMenuP
   }
 
   return (
-    <div className="flex items-center space-x-6 rtl:space-x-reverse">
+    <div className="flex items-center gap-2 rtl:space-x-reverse">
       {items.map((item) => (
         <MenuItemDesktop
           key={item.id}
