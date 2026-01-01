@@ -33,6 +33,7 @@ export default async function EditorPage({ params }: EditorPageProps) {
     <Editor
       pageId={page.id}
       locale={locale}
+      fullPath={page.fullPath}
       initialTitle={pageContent.title}
       initialContent={pageContent.content}
       initialPublished={pageContent.published}
