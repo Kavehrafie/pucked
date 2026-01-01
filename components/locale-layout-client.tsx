@@ -12,11 +12,13 @@ interface LocaleLayoutClientProps {
   siteName: { en: string; fa: string };
   logoUrl: string;
   settings: any;
+  isEditModeOn?: boolean;
 }
 
 export function LocaleLayoutClient({ 
   children, 
   locale,
+  isEditModeOn,
   menuItems,
   siteName,
   logoUrl,
@@ -33,7 +35,7 @@ export function LocaleLayoutClient({
   
   return (
     <div className="min-h-screen flex flex-col">
-      <GuestNavbar menuItems={menuItems} siteName={siteName} logoUrl={logoUrl} />
+      <GuestNavbar menuItems={menuItems} siteName={siteName} logoUrl={logoUrl} isEditModeOn={isEditModeOn} />
       <main className="flex-1 mx-auto prose md:prose-lg md:max-w-xl lg:max-w-2xl px-4 py-8 w-full">
         {children}
       </main>

@@ -4,6 +4,7 @@ import { routing } from "@/i18n/routing";
 import { LocaleLayoutClient } from "@/components/locale-layout-client";
 import { getMenuTree } from "@/lib/page-tree";
 import { getSiteSettings } from "@/lib/site-settings";
+import { getCurrentSession } from "@/lib/session";
 
 type Props = {
   children: React.ReactNode;
@@ -24,6 +25,8 @@ export default async function LocaleLayout({ children, params }: Props) {
     getMenuTree(locale),
     getSiteSettings(),
   ]);
+  
+  const {user} = await getCurrentSession()
 
   return (
     <NextIntlClientProvider locale={locale}>
@@ -35,6 +38,7 @@ export default async function LocaleLayout({ children, params }: Props) {
           siteName={settings?.siteName || { en: "Pucked", fa: "پاکد" }}
           logoUrl={settings?.logoUrl || ""}
           settings={settings}
+          isEditModeOn={!!user}
         >
           {children}
         </LocaleLayoutClient>

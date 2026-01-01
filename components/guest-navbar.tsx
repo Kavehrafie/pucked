@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import NextLink from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   InputGroup,
@@ -10,11 +11,14 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Menu, X, Search } from "lucide-react";
+import { Menu, X, Search, Pencil } from "lucide-react";
 import { LanguageSwitcher } from "./guest-language-switcher";
 import { NestedMenu } from "./nested-menu";
 import { searchPages, type SearchResult } from "@/app/_actions";
 import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
+import path from "path";
+
 
 interface MenuItem {
   id: number;
@@ -28,9 +32,10 @@ interface GuestNavbarProps {
   menuItems: MenuItem[];
   siteName: { en: string; fa: string };
   logoUrl: string;
+  isEditModeOn?: boolean;
 }
 
-export function GuestNavbar({ menuItems, siteName, logoUrl }: GuestNavbarProps) {
+export function GuestNavbar({ menuItems, siteName, logoUrl, isEditModeOn }: GuestNavbarProps) {
   const locale = useLocale();
   const t = useTranslations("Navigation");
   const tSearch = useTranslations("Search");
@@ -69,6 +74,14 @@ export function GuestNavbar({ menuItems, siteName, logoUrl }: GuestNavbarProps) 
   const handleSearchBlur = () => {
     setTimeout(() => setShowSearchResults(false), 200);
   };
+
+  const normalizeSlug = (slug: string) => {
+    return slug.startsWith("home") ? slug.replace("home", "/") : slug;
+  }
+
+  const pathname = usePathname();
+  const pathSegments = pathname?.replace(/^\/[a-z]{2}/, "/home").split("/").filter(Boolean) || [];
+  const slug = (pathSegments.pop() || "/");
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
@@ -135,7 +148,7 @@ export function GuestNavbar({ menuItems, siteName, logoUrl }: GuestNavbarProps) 
                     {searchResults.map((result) => (
                       <Link
                         key={result.id}
-                        href={`/${result.fullPath}`}
+                        href={`/${normalizeSlug(result.fullPath)}`}
                         onClick={() => {
                           setSearchQuery("");
                           setSearchResults([]);
@@ -164,6 +177,15 @@ export function GuestNavbar({ menuItems, siteName, logoUrl }: GuestNavbarProps) 
           <div className="flex items-center gap-2">
             <div className="hidden md:block">
               <LanguageSwitcher />
+            </div>
+            <div className="hidden md:block">
+              {isEditModeOn && (
+                <Button variant="ghost" size="icon" asChild aria-label="Edit Page">
+                <NextLink href={`/admin/pages/${locale}/${slug}/edit`}>
+                  <Pencil />
+                </NextLink>
+                </Button>
+              )}
             </div>
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
@@ -195,7 +217,7 @@ export function GuestNavbar({ menuItems, siteName, logoUrl }: GuestNavbarProps) 
                       {searchResults.map((result) => (
                         <Link
                           key={result.id}
-                          href={`/${result.fullPath}`}
+                          href={`/${normalizeSlug(result.fullPath)}`}
                           onClick={() => {
                             setSearchQuery("");
                             setSearchResults([]);
